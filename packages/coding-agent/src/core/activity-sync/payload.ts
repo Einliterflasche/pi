@@ -28,6 +28,8 @@ export interface ActivitySyncPayload {
 	compressedBytes: number;
 }
 
+type EncodedActivitySyncPayload = Omit<ActivitySyncPayload, "watermark" | "contentEncoding">;
+
 function parseIsoTime(value: string): number {
 	const time = new Date(value).getTime();
 	if (Number.isNaN(time)) throw new Error(`Invalid session analytics timestamp: ${value}`);
@@ -96,60 +98,44 @@ function getRecordGroups(records: SessionAnalyticsRecord[]): SessionAnalyticsRec
 }
 
 function getPayloadWatermark(
-	records: SessionAnalyticsRecord[],
-	isOnlyPayload: boolean,
+	payload: EncodedActivitySyncPayload,
 	isFinalPayload: boolean,
 	scanCutoff: string,
 	serverWatermark: string | null,
 ): string {
-	if (isOnlyPayload || isFinalPayload) return scanCutoff;
-	const maxTimestamp = getSessionAnalyticsRecordTimestamp(records[records.length - 1]);
-	if (serverWatermark && parseIsoTime(maxTimestamp) <= parseIsoTime(serverWatermark)) return serverWatermark;
-	return maxTimestamp;
+	if (isFinalPayload) return scanCutoff;
+	if (serverWatermark && parseIsoTime(payload.lastRecordTimestamp) <= parseIsoTime(serverWatermark))
+		return serverWatermark;
+	return payload.lastRecordTimestamp;
 }
 
-async function createPayload(
+async function encodeActivitySyncPayload(
 	records: SessionAnalyticsRecord[],
-	watermark: string,
 	maxCompressedBytes: number,
 	maxDecompressedBytes: number,
 	compress: ((input: Buffer) => Promise<Buffer>) | undefined,
-): Promise<ActivitySyncPayload> {
+): Promise<EncodedActivitySyncPayload | undefined> {
 	const ndjson = serializeSessionAnalyticsNdjson(records);
-	if (ndjson.byteLength > maxDecompressedBytes) {
-		throw new Error(
-			`Session analytics payload exceeds decompressed size limit (${ndjson.byteLength} > ${maxDecompressedBytes} bytes)`,
-		);
-	}
+	if (ndjson.byteLength > maxDecompressedBytes) return undefined;
 	const body = await compressActivitySyncNdjson(ndjson, compress);
-	if (body.byteLength > maxCompressedBytes) {
-		throw new Error(
-			`Session analytics payload exceeds compressed size limit (${body.byteLength} > ${maxCompressedBytes} bytes)`,
-		);
-	}
+	if (body.byteLength > maxCompressedBytes) return undefined;
 	return {
 		records,
 		recordCount: records.length,
 		firstRecordTimestamp: getSessionAnalyticsRecordTimestamp(records[0]),
 		lastRecordTimestamp: getSessionAnalyticsRecordTimestamp(records[records.length - 1]),
-		watermark,
-		contentEncoding: ACTIVITY_SYNC_CONTENT_ENCODING,
 		body,
 		decompressedBytes: ndjson.byteLength,
 		compressedBytes: body.byteLength,
 	};
 }
 
-async function payloadFits(
-	records: SessionAnalyticsRecord[],
-	maxCompressedBytes: number,
-	maxDecompressedBytes: number,
-	compress: ((input: Buffer) => Promise<Buffer>) | undefined,
-): Promise<boolean> {
-	const ndjson = serializeSessionAnalyticsNdjson(records);
-	if (ndjson.byteLength > maxDecompressedBytes) return false;
-	const body = await compressActivitySyncNdjson(ndjson, compress);
-	return body.byteLength <= maxCompressedBytes;
+function withPayloadWatermark(payload: EncodedActivitySyncPayload, watermark: string): ActivitySyncPayload {
+	return {
+		...payload,
+		watermark,
+		contentEncoding: ACTIVITY_SYNC_CONTENT_ENCODING,
+	};
 }
 
 export async function buildActivitySyncPayloads(
@@ -159,53 +145,43 @@ export async function buildActivitySyncPayloads(
 	const maxCompressedBytes = options.maxCompressedBytes ?? ACTIVITY_SYNC_MAX_COMPRESSED_BYTES;
 	const maxDecompressedBytes = options.maxDecompressedBytes ?? ACTIVITY_SYNC_MAX_DECOMPRESSED_BYTES;
 	const sortedRecords = sortSessionAnalyticsRecords(options.records);
+	const compress = options.compress;
 
-	if (await payloadFits(sortedRecords, maxCompressedBytes, maxDecompressedBytes, options.compress)) {
-		return [
-			await createPayload(
-				sortedRecords,
-				options.scanCutoff,
-				maxCompressedBytes,
-				maxDecompressedBytes,
-				options.compress,
-			),
-		];
-	}
+	const singlePayload = await encodeActivitySyncPayload(
+		sortedRecords,
+		maxCompressedBytes,
+		maxDecompressedBytes,
+		compress,
+	);
+	if (singlePayload) return [withPayloadWatermark(singlePayload, options.scanCutoff)];
 
-	const batches: SessionAnalyticsRecord[][] = [];
-	let current: SessionAnalyticsRecord[] = [];
+	const batches: EncodedActivitySyncPayload[] = [];
+	let current: EncodedActivitySyncPayload | undefined;
 	for (const group of getRecordGroups(sortedRecords)) {
-		const candidate = [...current, ...group];
-		if (
-			current.length > 0 &&
-			!(await payloadFits(candidate, maxCompressedBytes, maxDecompressedBytes, options.compress))
-		) {
-			batches.push(current);
-			current = [];
+		const candidateRecords = current ? [...current.records, ...group] : group;
+		const candidate = await encodeActivitySyncPayload(
+			candidateRecords,
+			maxCompressedBytes,
+			maxDecompressedBytes,
+			compress,
+		);
+		if (candidate) {
+			current = candidate;
+			continue;
 		}
-		const next = [...current, ...group];
-		if (!(await payloadFits(next, maxCompressedBytes, maxDecompressedBytes, options.compress))) {
-			throw new Error("Session analytics records with the same timestamp exceed the upload size limit");
-		}
+
+		if (!current) throw new Error("Session analytics records with the same timestamp exceed the upload size limit");
+		batches.push(current);
+		const next = await encodeActivitySyncPayload(group, maxCompressedBytes, maxDecompressedBytes, compress);
+		if (!next) throw new Error("Session analytics records with the same timestamp exceed the upload size limit");
 		current = next;
 	}
-	if (current.length > 0) batches.push(current);
+	if (current) batches.push(current);
 
-	return Promise.all(
-		batches.map((batch, index) =>
-			createPayload(
-				batch,
-				getPayloadWatermark(
-					batch,
-					batches.length === 1,
-					index === batches.length - 1,
-					options.scanCutoff,
-					options.serverWatermark,
-				),
-				maxCompressedBytes,
-				maxDecompressedBytes,
-				options.compress,
-			),
+	return batches.map((batch, index) =>
+		withPayloadWatermark(
+			batch,
+			getPayloadWatermark(batch, index === batches.length - 1, options.scanCutoff, options.serverWatermark),
 		),
 	);
 }

@@ -1,10 +1,9 @@
 import type { Dirent } from "fs";
-import { createReadStream } from "fs";
 import { readdir, stat } from "fs/promises";
 import { basename, dirname, join, relative, resolve } from "path";
-import { createInterface } from "readline";
 import { getSessionsDir } from "../../config.ts";
 import type { SessionHeader } from "../session-manager.ts";
+import { readSessionHeader } from "./session-file.ts";
 
 export type SessionDiscoveryPhase = "scan" | "read";
 
@@ -38,28 +37,6 @@ export interface DiscoveredSession {
 	createdAt?: Date;
 	modifiedAt: Date;
 	sizeBytes: number;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null;
-}
-
-function parseSessionHeader(value: unknown): SessionHeader | undefined {
-	if (!isRecord(value)) return undefined;
-	if (value.type !== "session") return undefined;
-	if (typeof value.id !== "string" || !value.id) return undefined;
-	if (typeof value.timestamp !== "string" || !value.timestamp) return undefined;
-	if (typeof value.cwd !== "string") return undefined;
-	if (value.version !== undefined && typeof value.version !== "number") return undefined;
-	if (value.parentSession !== undefined && typeof value.parentSession !== "string") return undefined;
-	return {
-		type: "session",
-		version: value.version,
-		id: value.id,
-		timestamp: value.timestamp,
-		cwd: value.cwd,
-		parentSession: value.parentSession,
-	};
 }
 
 function parseDate(value: string): Date | undefined {
@@ -116,27 +93,6 @@ export async function discoverSessionFiles(options: DiscoverSessionFilesOptions 
 	await walkSessionFiles(sessionsRoot, files, progress, options.signal, options.onProgress);
 	files.sort((a, b) => a.localeCompare(b));
 	return files;
-}
-
-async function readSessionHeader(filePath: string): Promise<SessionHeader | undefined> {
-	const stream = createReadStream(filePath, { encoding: "utf8" });
-	const lines = createInterface({ input: stream, crlfDelay: Infinity });
-	try {
-		for await (const line of lines) {
-			if (!line.trim()) return undefined;
-			let parsed: unknown;
-			try {
-				parsed = JSON.parse(line);
-			} catch {
-				return undefined;
-			}
-			return parseSessionHeader(parsed);
-		}
-		return undefined;
-	} finally {
-		lines.close();
-		stream.destroy();
-	}
 }
 
 async function discoverSessionFromFile(sessionsRoot: string, filePath: string): Promise<DiscoveredSession | undefined> {
