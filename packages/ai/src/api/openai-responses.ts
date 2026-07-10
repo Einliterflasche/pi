@@ -15,6 +15,7 @@ import type {
 	StreamOptions,
 	Usage,
 } from "../types.ts";
+import { splitDeferredTools } from "../utils/deferred-tools.ts";
 import { formatProviderError, normalizeProviderError } from "../utils/error-body.ts";
 import { AssistantMessageEventStream } from "../utils/event-stream.ts";
 import { headersToRecord } from "../utils/headers.ts";
@@ -66,6 +67,7 @@ function getCompat(model: Model<"openai-responses">): Required<OpenAIResponsesCo
 		supportsLongCacheRetention: model.compat?.supportsLongCacheRetention ?? true,
 		supportsStrictMode: model.compat?.supportsStrictMode ?? isOpenAI,
 		supportsGrammarTools: model.compat?.supportsGrammarTools ?? false,
+		supportsToolSearch: model.compat?.supportsToolSearch ?? false,
 	};
 }
 
@@ -240,8 +242,14 @@ function buildParams(
 		compat.supportsGrammarTools,
 	),
 ) {
+	const toolPlacement = splitDeferredTools(context, compat.supportsToolSearch);
 	const messages = convertResponsesMessages(model, context, OPENAI_TOOL_CALL_PROVIDERS, {
 		grammarToolInputProperties,
+		deferredTools: toolPlacement.deferred,
+		toolOptions: {
+			supportsStrictMode: compat.supportsStrictMode,
+			supportsGrammarTools: compat.supportsGrammarTools,
+		},
 	});
 
 	const cacheRetention = resolveCacheRetention(options?.cacheRetention, options?.env);
@@ -266,8 +274,8 @@ function buildParams(
 		params.service_tier = options.serviceTier;
 	}
 
-	if (context.tools && context.tools.length > 0) {
-		params.tools = convertResponsesTools(context.tools, {
+	if (toolPlacement.immediate.length > 0) {
+		params.tools = convertResponsesTools(toolPlacement.immediate, {
 			supportsStrictMode: compat.supportsStrictMode,
 			supportsGrammarTools: compat.supportsGrammarTools,
 		});

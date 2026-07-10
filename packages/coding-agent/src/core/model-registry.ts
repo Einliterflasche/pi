@@ -142,6 +142,7 @@ const OpenAIResponsesCompatSchema = Type.Object({
 	supportsLongCacheRetention: Type.Optional(Type.Boolean()),
 	supportsStrictMode: Type.Optional(Type.Boolean()),
 	supportsGrammarTools: Type.Optional(Type.Boolean()),
+	supportsToolSearch: Type.Optional(Type.Boolean()),
 });
 
 const AnthropicMessagesCompatSchema = Type.Object({
@@ -153,6 +154,7 @@ const AnthropicMessagesCompatSchema = Type.Object({
 	forceAdaptiveThinking: Type.Optional(Type.Boolean()),
 	allowEmptySignature: Type.Optional(Type.Boolean()),
 	supportsStrictTools: Type.Optional(Type.Boolean()),
+	supportsToolReferences: Type.Optional(Type.Boolean()),
 });
 
 const ProviderCompatSchema = Type.Union([
