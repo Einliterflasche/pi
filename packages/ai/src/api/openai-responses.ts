@@ -65,7 +65,7 @@ function getCompat(model: Model<"openai-responses">): Required<OpenAIResponsesCo
 		sendSessionIdHeader: model.compat?.sendSessionIdHeader ?? true,
 		supportsLongCacheRetention: model.compat?.supportsLongCacheRetention ?? true,
 		supportsStrictMode: model.compat?.supportsStrictMode ?? isOpenAI,
-		supportsGrammarTools: model.compat?.supportsGrammarTools ?? isOpenAI,
+		supportsGrammarTools: model.compat?.supportsGrammarTools ?? false,
 	};
 }
 
