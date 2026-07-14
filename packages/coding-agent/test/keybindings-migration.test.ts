@@ -14,6 +14,8 @@ describe("default keybindings", () => {
 		expect(effective["app.model.select"]).toEqual(["ctrl+l", "ctrl+p", "super+p"]);
 		expect(effective["app.model.cycleForward"]).toBe("alt+p");
 		expect(effective["app.model.cycleBackward"]).toBe("shift+alt+p");
+		expect(effective["app.permissions.cycle"]).toBe("shift+tab");
+		expect(effective["app.thinking.cycle"]).toBe("alt+t");
 	});
 });
 

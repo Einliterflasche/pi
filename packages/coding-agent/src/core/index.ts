@@ -77,4 +77,12 @@ export {
 	type TurnStartEvent,
 	type WorkingIndicatorOptions,
 } from "./extensions/index.ts";
+export {
+	type ClassifierResult,
+	PermissionController,
+	type PermissionDecision,
+	type PermissionMode,
+	type PermissionRequest,
+	parseClassifierResult,
+} from "./permissions.ts";
 export { createSyntheticSourceInfo } from "./source-info.ts";
