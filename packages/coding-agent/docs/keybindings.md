@@ -29,7 +29,7 @@ After editing the file, run `/reload` to apply the changes to the active session
 
 ## Key syntax
 
-Write a key as `modifier+key`. Modifiers are `ctrl`, `shift`, `alt`, and `super`. You can combine modifiers. Valid keys are:
+Write a key as `modifier+key`. Modifiers are `ctrl`, `shift`, `alt`, and `super` (Command on macOS). You can combine modifiers. Valid keys are:
 
 - **Letters:** `a-z`
 - **Digits:** `0-9`
@@ -148,9 +148,9 @@ On native Windows, `app.suspend` has no default because Windows terminals do not
 
 | Keybinding id | Default | Description |
 |--------|---------|-------------|
-| `app.model.select` | `ctrl+l` | Open model selector |
-| `app.model.cycleForward` | `ctrl+p` | Cycle to next model |
-| `app.model.cycleBackward` | `shift+ctrl+p` (`alt+p` on Windows and WSL) | Cycle to previous model |
+| `app.model.select` | `ctrl+l`, `ctrl+p`, `super+p` | Open model selector |
+| `app.model.cycleForward` | `alt+p` | Cycle to next model |
+| `app.model.cycleBackward` | `shift+alt+p` (`alt+p` on Windows and WSL) | Cycle to previous model |
 | `app.models.save` | `ctrl+s` | Save the selected default model or scoped model configuration to settings |
 | `app.thinking.cycle` | `shift+tab` | Cycle thinking level |
 | `app.thinking.save` | `ctrl+s` | Save current thinking level to settings |

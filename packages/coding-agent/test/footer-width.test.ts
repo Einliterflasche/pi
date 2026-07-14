@@ -172,7 +172,7 @@ describe("FooterComponent width handling", () => {
 		expect(statsLine).toContain("auto \u2022 high \u2192 gpt-5.6-luna \u2022 medium");
 	});
 
-	it("includes summary and tool result usage in the total cost", () => {
+	it("includes summary and tool result usage in the token totals", () => {
 		const session = createSession({
 			sessionName: "",
 			usage: {
@@ -207,20 +207,20 @@ describe("FooterComponent width handling", () => {
 		const footer = new FooterComponent(session, createFooterData(1));
 
 		const statsLine = stripAnsi(footer.render(120)[1]);
-		expect(statsLine).toContain("$1.250");
+		expect(statsLine).toContain("↑140 ↓20");
 	});
 
 	it("updates cached usage totals after an entry is appended", () => {
 		const usage = { input: 10, output: 1, cacheRead: 0, cacheWrite: 0, cost: { total: 0.5 } };
 		const session = createSession({ sessionName: "", usage });
 		const footer = new FooterComponent(session, createFooterData(1));
-		expect(stripAnsi(footer.render(120)[1])).toContain("$0.500");
+		expect(stripAnsi(footer.render(120)[1])).toContain("↑10 ↓1");
 
 		session.sessionManager.getEntries().push({ type: "message", message: { role: "assistant", usage } } as never);
-		expect(stripAnsi(footer.render(120)[1])).toContain("$1.000");
+		expect(stripAnsi(footer.render(120)[1])).toContain("↑20 ↓2");
 	});
 
-	it("shows the latest cache hit rate when cache usage is present", () => {
+	it("shows only input, output, and compact context usage on the left", () => {
 		const session = createSession({
 			sessionName: "",
 			usage: {
@@ -234,49 +234,11 @@ describe("FooterComponent width handling", () => {
 		const footer = new FooterComponent(session, createFooterData(1));
 
 		const statsLine = stripAnsi(footer.render(120)[1]);
-		expect(statsLine).toContain("CH25.0%");
+		expect(statsLine).toContain("↑100 ↓10 12.3% (200k)");
+		expect(statsLine).not.toContain("R50");
+		expect(statsLine).not.toContain("CH");
+		expect(statsLine).not.toContain("$0.001");
+		expect(statsLine).not.toContain("auto");
 	});
 
-	it("marks Kimi Coding costs as subscription estimates", () => {
-		const session = createSession({
-			sessionName: "",
-			provider: "kimi-coding",
-			usage: {
-				input: 100,
-				output: 10,
-				cacheRead: 0,
-				cacheWrite: 0,
-				cost: { total: 1.234 },
-			},
-		});
-		const footer = new FooterComponent(session, createFooterData(1));
-
-		expect(stripAnsi(footer.render(120)[1])).toContain("$1.234 (sub)");
-	});
-
-	it("marks explicitly identified subscription auth", () => {
-		const session = createSession({ sessionName: "", provider: "anthropic", usingSubscription: true });
-		const footer = new FooterComponent(session, createFooterData(1));
-
-		expect(stripAnsi(footer.render(120)[1])).toContain("$0.000 (sub)");
-	});
-
-	it("does not mark generic OAuth sign-in as a subscription", () => {
-		const session = createSession({
-			sessionName: "",
-			provider: "openrouter",
-			usage: {
-				input: 100,
-				output: 10,
-				cacheRead: 0,
-				cacheWrite: 0,
-				cost: { total: 1.234 },
-			},
-		});
-		const footer = new FooterComponent(session, createFooterData(1));
-		const stats = stripAnsi(footer.render(120)[1]);
-
-		expect(stats).toContain("$1.234");
-		expect(stats).not.toContain("(sub)");
-	});
 });
