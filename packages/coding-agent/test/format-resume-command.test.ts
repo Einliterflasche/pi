@@ -4,7 +4,10 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { APP_NAME } from "../src/config.ts";
 import type { SessionManager } from "../src/core/session-manager.ts";
-import { formatResumeCommand } from "../src/modes/interactive/interactive-mode.ts";
+import {
+	formatResumeCommand,
+	formatUpstreamVersionNotification,
+} from "../src/modes/interactive/interactive-mode.ts";
 
 const tempDirs: string[] = [];
 const originalStdoutIsTTY = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
@@ -48,6 +51,16 @@ function createSessionManager(options: {
 		usesDefaultSessionDir: () => options.usesDefaultSessionDir ?? true,
 	} as unknown as SessionManager;
 }
+
+describe("formatUpstreamVersionNotification", () => {
+	it("describes an upstream release without suggesting the official updater", () => {
+		const message = formatUpstreamVersionNotification("0.80.7", "0.80.6");
+
+		expect(message).toBe("New upstream available: 0.80.7. Current version: 0.80.6.");
+		expect(message).not.toContain("update");
+		expect(message).not.toContain("pi.dev");
+	});
+});
 
 describe("formatResumeCommand", () => {
 	it("returns a session resume command for default session dirs", () => {
