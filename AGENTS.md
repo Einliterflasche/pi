@@ -52,7 +52,8 @@ Committing:
 - Stage explicit paths (`git add <path1> <path2>`); never `git add -A` / `git add .`.
 - Before committing, run `git status` and verify you are only staging your files.
 - `packages/ai/src/models.generated.ts` may always be included alongside your files.
-- Message format: `{feat,fix,docs}[(ai,tui,agent,coding-agent)]: <commit message> (optionally multiple lines)`. Message is informative and concise.
+- Fork patch commits use short, single-line messages in the format `FORK-PATCH: <message>`.
+- Keep commits logical: one feature or independently understandable change per commit.
 
 Never run (destroys other agents' work or bypasses checks):
 
@@ -62,7 +63,22 @@ If rebase conflicts occur:
 
 - Resolve conflicts only in files you modified.
 - If a conflict is in a file you did not modify, abort and ask the user.
-- Never force push.
+- Never force push upstream. After intentionally rebasing fork patches, force-push only `origin` with `--force-with-lease` and only when the user explicitly requests it.
+
+### Updating This Fork
+
+Keep the fork as a short, linear stack of `FORK-PATCH` commits on top of upstream. Do not merge upstream into the fork.
+
+1. Start with a clean worktree: `git status --short`.
+2. Fetch upstream and release tags: `git fetch upstream --tags`.
+3. Select the update target, for example `target=upstream/main` or `target=v0.80.7`.
+4. Record the old upstream base: `old_base=$(git merge-base main "$target")`.
+5. Rebase the fork patch stack: `git rebase --onto "$target" "$old_base" main`.
+6. Resolve conflicts only in fork-modified files, preserving the upstream implementation and reapplying the fork behavior cleanly. Continue with `git rebase --continue`.
+7. Run `npm install --ignore-scripts`, `npm run check`, relevant tests, and `./test.sh` when the update affects runtime code.
+8. Reinstall the fork with `just install`.
+9. Verify the patch stack with `git log --oneline "$target"..main`; every commit must be a short `FORK-PATCH: <message>` one-liner.
+10. When explicitly requested, update the fork remote with `git push --force-with-lease origin main`. Never push fork history to `upstream`.
 
 ## Issues and PRs
 
