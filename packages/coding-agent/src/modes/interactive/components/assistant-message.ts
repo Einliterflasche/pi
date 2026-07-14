@@ -13,6 +13,7 @@ export class AssistantMessageComponent extends Container {
 	private contentContainer: Container;
 	private hideThinkingBlock: boolean;
 	private markdownTheme: MarkdownTheme;
+	private thinkingMarkdownTheme: MarkdownTheme;
 	private hiddenThinkingLabel: string;
 	private outputPad: number;
 	private lastMessage?: AssistantMessage;
@@ -29,6 +30,7 @@ export class AssistantMessageComponent extends Container {
 
 		this.hideThinkingBlock = hideThinkingBlock;
 		this.markdownTheme = markdownTheme;
+		this.thinkingMarkdownTheme = { ...markdownTheme, bold: (text: string) => text };
 		this.hiddenThinkingLabel = hiddenThinkingLabel;
 		this.outputPad = outputPad;
 
@@ -133,7 +135,7 @@ export class AssistantMessageComponent extends Container {
 				} else {
 					// Render each run of thinking blocks as one Markdown section.
 					this.contentContainer.addChild(
-						new Markdown(thinkingBlocks.join("\n\n"), this.outputPad, 0, this.markdownTheme, {
+						new Markdown(thinkingBlocks.join("\n\n"), this.outputPad, 0, this.thinkingMarkdownTheme, {
 							color: (text: string) => theme.fg("thinkingText", text),
 							italic: true,
 						}),

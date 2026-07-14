@@ -10,7 +10,7 @@ After editing `keybindings.json`, run `/reload` in pi to apply the changes witho
 
 ## Key Format
 
-`modifier+key` where modifiers are `ctrl`, `shift`, `alt` (combinable) and keys are:
+`modifier+key` where modifiers are `ctrl`, `shift`, `alt`, `super` (Command on macOS), and keys are:
 
 - **Letters:** `a-z`
 - **Digits:** `0-9`
@@ -18,7 +18,7 @@ After editing `keybindings.json`, run `/reload` in pi to apply the changes witho
 - **Function:** `f1`-`f12`
 - **Symbols:** `` ` ``, `-`, `=`, `[`, `]`, `\`, `;`, `'`, `,`, `.`, `/`, `!`, `@`, `#`, `$`, `%`, `^`, `&`, `*`, `(`, `)`, `_`, `+`, `|`, `~`, `{`, `}`, `:`, `<`, `>`, `?`
 
-Modifier combinations: `ctrl+shift+x`, `alt+ctrl+x`, `ctrl+shift+alt+x`, `ctrl+1`, etc.
+Modifier combinations: `ctrl+shift+x`, `alt+ctrl+x`, `ctrl+shift+alt+x`, `super+p`, `ctrl+1`, etc.
 
 ## All Actions
 
@@ -108,9 +108,9 @@ Modifier combinations: `ctrl+shift+x`, `alt+ctrl+x`, `ctrl+shift+alt+x`, `ctrl+1
 
 | Keybinding id | Default | Description |
 |--------|---------|-------------|
-| `app.model.select` | `ctrl+l` | Open model selector |
-| `app.model.cycleForward` | `ctrl+p` | Cycle to next model |
-| `app.model.cycleBackward` | `shift+ctrl+p` | Cycle to previous model |
+| `app.model.select` | `ctrl+l`, `ctrl+p`, `super+p` | Open model selector |
+| `app.model.cycleForward` | `alt+p` | Cycle to next model |
+| `app.model.cycleBackward` | `shift+alt+p` | Cycle to previous model |
 | `app.thinking.cycle` | `shift+tab` | Cycle thinking level |
 | `app.thinking.toggle` | `ctrl+t` | Collapse or expand thinking blocks |
 

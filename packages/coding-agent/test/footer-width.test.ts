@@ -21,46 +21,20 @@ function createSession(options: {
 	reasoning?: boolean;
 	thinkingLevel?: string;
 	usage?: AssistantUsage;
-	branchUsage?: AssistantUsage;
-	compactionUsage?: AssistantUsage;
-	toolUsage?: AssistantUsage;
 }): AgentSession {
 	const usage = options.usage;
-	const entries: Array<Record<string, unknown>> = [];
-
-	if (usage !== undefined) {
-		entries.push({
-			type: "message",
-			message: {
-				role: "assistant",
-				usage,
-			},
-		});
-	}
-
-	if (options.branchUsage !== undefined) {
-		entries.push({
-			type: "branch_summary",
-			usage: options.branchUsage,
-		});
-	}
-
-	if (options.compactionUsage !== undefined) {
-		entries.push({
-			type: "compaction",
-			usage: options.compactionUsage,
-		});
-	}
-
-	if (options.toolUsage !== undefined) {
-		entries.push({
-			type: "message",
-			message: {
-				role: "toolResult",
-				usage: options.toolUsage,
-			},
-		});
-	}
+	const entries =
+		usage === undefined
+			? []
+			: [
+					{
+						type: "message",
+						message: {
+							role: "assistant",
+							usage,
+						},
+					},
+				];
 
 	const session = {
 		state: {
@@ -151,45 +125,7 @@ describe("FooterComponent width handling", () => {
 		}
 	});
 
-	it("includes summary and tool result usage in the total cost", () => {
-		const session = createSession({
-			sessionName: "",
-			usage: {
-				input: 100,
-				output: 10,
-				cacheRead: 0,
-				cacheWrite: 0,
-				cost: { total: 0.5 },
-			},
-			branchUsage: {
-				input: 20,
-				output: 5,
-				cacheRead: 0,
-				cacheWrite: 0,
-				cost: { total: 0.25 },
-			},
-			compactionUsage: {
-				input: 5,
-				output: 2,
-				cacheRead: 0,
-				cacheWrite: 0,
-				cost: { total: 0.125 },
-			},
-			toolUsage: {
-				input: 15,
-				output: 3,
-				cacheRead: 0,
-				cacheWrite: 0,
-				cost: { total: 0.375 },
-			},
-		});
-		const footer = new FooterComponent(session, createFooterData(1));
-
-		const statsLine = stripAnsi(footer.render(120)[1]);
-		expect(statsLine).toContain("$1.250");
-	});
-
-	it("shows the latest cache hit rate when cache usage is present", () => {
+	it("shows only input, output, and compact context usage on the left", () => {
 		const session = createSession({
 			sessionName: "",
 			usage: {
@@ -203,23 +139,11 @@ describe("FooterComponent width handling", () => {
 		const footer = new FooterComponent(session, createFooterData(1));
 
 		const statsLine = stripAnsi(footer.render(120)[1]);
-		expect(statsLine).toContain("CH25.0%");
+		expect(statsLine).toContain("↑100 ↓10 12.3% (200k)");
+		expect(statsLine).not.toContain("R50");
+		expect(statsLine).not.toContain("CH");
+		expect(statsLine).not.toContain("$0.001");
+		expect(statsLine).not.toContain("auto");
 	});
 
-	it("marks Kimi Coding costs as subscription estimates", () => {
-		const session = createSession({
-			sessionName: "",
-			provider: "kimi-coding",
-			usage: {
-				input: 100,
-				output: 10,
-				cacheRead: 0,
-				cacheWrite: 0,
-				cost: { total: 1.234 },
-			},
-		});
-		const footer = new FooterComponent(session, createFooterData(1));
-
-		expect(stripAnsi(footer.render(120)[1])).toContain("$1.234 (sub)");
-	});
 });

@@ -65,8 +65,8 @@ export class ToolExecutionComponent extends Container {
 		// Always create all shell variants. contentBox is used for default renderer-based composition.
 		// selfRenderContainer is used when the tool renders its own framing.
 		// contentText is reserved for generic fallback rendering when no tool definition exists.
-		this.contentBox = new Box(1, 1, (text: string) => theme.bg("toolPendingBg", text));
-		this.contentText = new Text("", 1, 1, (text: string) => theme.bg("toolPendingBg", text));
+		this.contentBox = new Box(1, 0, (text: string) => theme.bg("toolPendingBg", text));
+		this.contentText = new Text("", 1, 0, (text: string) => theme.bg("toolPendingBg", text));
 		this.selfRenderContainer = new Container();
 
 		if (this.hasRendererDefinition()) {
@@ -129,6 +129,21 @@ export class ToolExecutionComponent extends Container {
 			expanded: this.expanded,
 			showImages: this.showImages,
 			isError: this.result?.isError ?? false,
+		};
+	}
+
+	private getStatusPrefix(): string {
+		const color = this.isPartial ? "accent" : this.result?.isError ? "error" : "dim";
+		return theme.fg(color, "● ");
+	}
+
+	private decorateCall(component: Component): Component {
+		return {
+			render: (width: number) => {
+				const lines = component.render(Math.max(1, width - 2));
+				return lines.map((line, index) => `${index === 0 ? this.getStatusPrefix() : "  "}${line}`);
+			},
+			invalidate: () => component.invalidate?.(),
 		};
 	}
 
@@ -268,17 +283,17 @@ export class ToolExecutionComponent extends Container {
 
 			const callRenderer = this.getCallRenderer();
 			if (!callRenderer) {
-				renderContainer.addChild(this.createCallFallback());
+				renderContainer.addChild(this.decorateCall(this.createCallFallback()));
 				hasContent = true;
 			} else {
 				try {
 					const component = callRenderer(this.args, theme, this.getRenderContext(this.callRendererComponent));
 					this.callRendererComponent = component;
-					renderContainer.addChild(component);
+					renderContainer.addChild(this.decorateCall(component));
 					hasContent = true;
 				} catch {
 					this.callRendererComponent = undefined;
-					renderContainer.addChild(this.createCallFallback());
+					renderContainer.addChild(this.decorateCall(this.createCallFallback()));
 					hasContent = true;
 				}
 			}
@@ -363,7 +378,7 @@ export class ToolExecutionComponent extends Container {
 	}
 
 	private formatToolExecution(): string {
-		let text = theme.fg("toolTitle", theme.bold(this.toolName));
+		let text = this.getStatusPrefix() + theme.fg("toolTitle", theme.bold(this.toolName));
 		const content = JSON.stringify(this.args, null, 2);
 		if (content) {
 			text += `\n\n${content}`;

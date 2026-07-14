@@ -75,14 +75,17 @@ export const KEYBINDINGS = {
 		description: "Cycle thinking level",
 	},
 	"app.model.cycleForward": {
-		defaultKeys: "ctrl+p",
+		defaultKeys: "alt+p",
 		description: "Cycle to next model",
 	},
 	"app.model.cycleBackward": {
-		defaultKeys: "shift+ctrl+p",
+		defaultKeys: "shift+alt+p",
 		description: "Cycle to previous model",
 	},
-	"app.model.select": { defaultKeys: "ctrl+l", description: "Open model selector" },
+	"app.model.select": {
+		defaultKeys: ["ctrl+l", "ctrl+p", "super+p"],
+		description: "Open model selector",
+	},
 	"app.tools.expand": { defaultKeys: "ctrl+o", description: "Toggle tool output" },
 	"app.thinking.toggle": {
 		defaultKeys: "ctrl+t",

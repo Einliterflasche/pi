@@ -26,8 +26,6 @@ import {
 	type Component,
 	Container,
 	fuzzyFilter,
-	getCapabilities,
-	hyperlink,
 	Markdown,
 	matchesKey,
 	ProcessTerminal,
@@ -226,6 +224,10 @@ function quoteIfNeeded(value: string): string {
 		return value;
 	}
 	return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+export function formatUpstreamVersionNotification(upstreamVersion: string, currentVersion: string = VERSION): string {
+	return `New upstream available: ${upstreamVersion}. Current version: ${currentVersion}.`;
 }
 
 export function formatResumeCommand(sessionManager: SessionManager): string | undefined {
@@ -478,7 +480,6 @@ export class InteractiveMode {
 		this.editorContainer.addChild(this.editor as Component);
 		this.footerDataProvider = new FooterDataProvider(this.sessionManager.getCwd());
 		this.footer = new FooterComponent(this.session, this.footerDataProvider);
-		this.footer.setAutoCompactEnabled(this.session.autoCompactionEnabled);
 
 		// Load hide thinking block setting
 		this.hideThinkingBlock = this.settingsManager.getHideThinkingBlock();
@@ -1709,7 +1710,6 @@ export class InteractiveMode {
 	private applyRuntimeSettings(): void {
 		configureHttpDispatcher(this.settingsManager.getHttpIdleTimeoutMs());
 		this.footer.setSession(this.session);
-		this.footer.setAutoCompactEnabled(this.session.autoCompactionEnabled);
 		this.footerDataProvider.setCwd(this.sessionManager.getCwd());
 		this.hideThinkingBlock = this.settingsManager.getHideThinkingBlock();
 		this.outputPad = this.settingsManager.getOutputPad();
@@ -3587,7 +3587,7 @@ export class InteractiveMode {
 
 		const resumeCommand = formatResumeCommand(this.sessionManager);
 		if (resumeCommand) {
-			process.stdout.write(`${chalk.dim("To resume this session:")} ${resumeCommand}\n`);
+			process.stdout.write(`${chalk.dim("To resume this session:")}\n${resumeCommand}\n`);
 		}
 
 		process.exit(0);
@@ -3883,31 +3883,13 @@ export class InteractiveMode {
 	}
 
 	showNewVersionNotification(release: LatestPiRelease): void {
-		const action = theme.fg("accent", `${APP_NAME} update`);
-		const updateInstruction = theme.fg("muted", `New version ${release.version} is available. Run `) + action;
-		const changelogUrl = "https://pi.dev/changelog";
-		const changelogLink = getCapabilities().hyperlinks
-			? hyperlink(theme.fg("accent", changelogUrl), changelogUrl)
-			: theme.fg("accent", changelogUrl);
-		const changelogLine = theme.fg("muted", "Changelog: ") + changelogLink;
-		const note = release.note?.trim();
+		const message = formatUpstreamVersionNotification(release.version);
+		const borderColor = (text: string) => theme.fg("borderMuted", text);
 
 		this.chatContainer.addChild(new Spacer(1));
-		this.chatContainer.addChild(new DynamicBorder((text) => theme.fg("warning", text)));
-		this.chatContainer.addChild(
-			new Text(`${theme.bold(theme.fg("warning", "Update Available"))}\n${updateInstruction}`, 1, 0),
-		);
-		if (note) {
-			this.chatContainer.addChild(new Spacer(1));
-			this.chatContainer.addChild(
-				new Markdown(note, 1, 0, this.getMarkdownThemeWithSettings(), {
-					color: (text) => theme.fg("muted", text),
-				}),
-			);
-			this.chatContainer.addChild(new Spacer(1));
-		}
-		this.chatContainer.addChild(new Text(changelogLine, 1, 0));
-		this.chatContainer.addChild(new DynamicBorder((text) => theme.fg("warning", text)));
+		this.chatContainer.addChild(new DynamicBorder(borderColor));
+		this.chatContainer.addChild(new Text(theme.fg("muted", message), 1, 0));
+		this.chatContainer.addChild(new DynamicBorder(borderColor));
 		this.ui.requestRender();
 	}
 
@@ -4170,7 +4152,6 @@ export class InteractiveMode {
 				{
 					onAutoCompactChange: (enabled) => {
 						this.session.setAutoCompactionEnabled(enabled);
-						this.footer.setAutoCompactEnabled(enabled);
 					},
 					onShowImagesChange: (enabled) => {
 						this.settingsManager.setShowImages(enabled);
