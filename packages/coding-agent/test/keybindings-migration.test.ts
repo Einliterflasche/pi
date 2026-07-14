@@ -6,6 +6,17 @@ import { ENV_AGENT_DIR } from "../src/config.ts";
 import { KeybindingsManager } from "../src/core/keybindings.ts";
 import { runMigrations } from "../src/migrations.ts";
 
+describe("default keybindings", () => {
+	it("opens the model selector with Control-P or Command-P", () => {
+		const keybindings = new KeybindingsManager();
+		const effective = keybindings.getEffectiveConfig();
+
+		expect(effective["app.model.select"]).toEqual(["ctrl+l", "ctrl+p", "super+p"]);
+		expect(effective["app.model.cycleForward"]).toBe("alt+p");
+		expect(effective["app.model.cycleBackward"]).toBe("shift+alt+p");
+	});
+});
+
 describe("keybindings migration", () => {
 	const tempDirs: string[] = [];
 
