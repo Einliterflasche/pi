@@ -81,6 +81,7 @@ import {
 	resolveModelScopeWithDiagnostics,
 } from "../../core/model-resolver.ts";
 import { DefaultPackageManager } from "../../core/package-manager.ts";
+import type { PermissionMode, PermissionRequest } from "../../core/permissions.ts";
 import type { ResourceDiagnostic } from "../../core/resource-loader.ts";
 import { formatMissingSessionCwdPrompt, MissingSessionCwdError } from "../../core/session-cwd.ts";
 import { type SessionEntry, SessionManager, sessionEntryToContextMessages } from "../../core/session-manager.ts";
@@ -432,6 +433,7 @@ export class InteractiveMode {
 	private options: InteractiveModeOptions;
 	private autoTrustOnReloadCwd: string | undefined;
 	private themeController: InteractiveThemeController;
+	private permissionMode: PermissionMode = "manual";
 
 	// Convenience accessors
 	private get session(): AgentSession {
@@ -480,6 +482,8 @@ export class InteractiveMode {
 		this.editorContainer.addChild(this.editor as Component);
 		this.footerDataProvider = new FooterDataProvider(this.sessionManager.getCwd());
 		this.footer = new FooterComponent(this.session, this.footerDataProvider);
+		this.enableSessionPermissions();
+		this.updatePermissionModeIndicator();
 
 		// Load hide thinking block setting
 		this.hideThinkingBlock = this.settingsManager.getHideThinkingBlock();
@@ -491,7 +495,10 @@ export class InteractiveMode {
 			this.ui,
 			this.settingsManager,
 			(message) => this.showError(message),
-			() => this.updateEditorBorderColor(),
+			() => {
+				this.updateEditorBorderColor();
+				this.updatePermissionModeIndicator();
+			},
 		);
 	}
 
@@ -1709,6 +1716,7 @@ export class InteractiveMode {
 
 	private applyRuntimeSettings(): void {
 		configureHttpDispatcher(this.settingsManager.getHttpIdleTimeoutMs());
+		this.enableSessionPermissions();
 		this.footer.setSession(this.session);
 		this.footerDataProvider.setCwd(this.sessionManager.getCwd());
 		this.hideThinkingBlock = this.settingsManager.getHideThinkingBlock();
@@ -2594,6 +2602,7 @@ export class InteractiveMode {
 		this.defaultEditor.onCtrlD = () => this.handleCtrlD();
 		this.defaultEditor.onAction("app.suspend", () => this.handleCtrlZ());
 		this.defaultEditor.onAction("app.thinking.cycle", () => this.cycleThinkingLevel());
+		this.defaultEditor.onAction("app.permissions.cycle", () => void this.cyclePermissionMode());
 		this.defaultEditor.onAction("app.model.cycleForward", () => this.cycleModel("forward"));
 		this.defaultEditor.onAction("app.model.cycleBackward", () => this.cycleModel("backward"));
 
@@ -2660,6 +2669,11 @@ export class InteractiveMode {
 			if (text === "/settings") {
 				this.showSettingsSelector();
 				this.editor.setText("");
+				return;
+			}
+			if (text === "/permissions") {
+				this.editor.setText("");
+				await this.showPermissionModeSelector();
 				return;
 			}
 			if (text === "/scoped-models") {
@@ -3763,6 +3777,60 @@ export class InteractiveMode {
 		} else {
 			this.showStatus(`Restored ${restored} queued message${restored > 1 ? "s" : ""} to editor`);
 		}
+	}
+
+	private enableSessionPermissions(): void {
+		this.session.enablePermissions(
+			async (request, reason, signal) => await this.requestToolPermission(request, reason, signal),
+			this.permissionMode,
+		);
+	}
+
+	private async requestToolPermission(
+		request: PermissionRequest,
+		reason: string | undefined,
+		signal?: AbortSignal,
+	): Promise<boolean> {
+		const details = JSON.stringify(request.args, null, 2);
+		const classifierFailure = reason ? `\n\n${reason}` : "";
+		const choice = await this.showExtensionSelector(
+			`Allow ${request.toolName}?\n\n${details}${classifierFailure}`,
+			["Allow once", "Deny"],
+			{ signal },
+		);
+		return choice === "Allow once";
+	}
+
+	private updatePermissionModeIndicator(): void {
+		const mode = this.permissionMode;
+		const indicator =
+			mode === "manual"
+				? theme.fg("dim", "⏸ manual ")
+				: mode === "skip"
+					? theme.fg("error", "⏵⏵ skip permissions ")
+					: theme.fg("warning", "⏵⏵ auto ");
+		this.defaultEditor.setModeIndicator(indicator);
+		this.ui.requestRender();
+	}
+
+	private setPermissionMode(mode: PermissionMode): void {
+		this.permissionMode = mode;
+		this.session.setPermissionMode(mode);
+		this.updatePermissionModeIndicator();
+	}
+
+	private cyclePermissionMode(): void {
+		const modes: PermissionMode[] = ["manual", "auto", "skip"];
+		const current = modes.indexOf(this.permissionMode);
+		this.setPermissionMode(modes[(current + 1) % modes.length] ?? "manual");
+	}
+
+	private async showPermissionModeSelector(): Promise<void> {
+		const labels = ["Manual", "Auto", "Skip permissions"];
+		const selected = await this.showExtensionSelector("Permission mode", labels);
+		if (!selected) return;
+		const mode: PermissionMode = selected === "Manual" ? "manual" : selected === "Auto" ? "auto" : "skip";
+		this.setPermissionMode(mode);
 	}
 
 	private updateEditorBorderColor(): void {
