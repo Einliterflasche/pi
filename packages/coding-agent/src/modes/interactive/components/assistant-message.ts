@@ -15,6 +15,7 @@ export class AssistantMessageComponent extends Container {
 	private contentContainer: Container;
 	private hideThinkingBlock: boolean;
 	private markdownTheme: MarkdownTheme;
+	private thinkingMarkdownTheme: MarkdownTheme;
 	private hiddenThinkingLabel: string;
 	private outputPad: number;
 	private markdownTransformers: readonly MarkdownTransformer[];
@@ -34,6 +35,7 @@ export class AssistantMessageComponent extends Container {
 
 		this.hideThinkingBlock = hideThinkingBlock;
 		this.markdownTheme = markdownTheme;
+		this.thinkingMarkdownTheme = { ...markdownTheme, bold: (text: string) => text };
 		this.hiddenThinkingLabel = hiddenThinkingLabel;
 		this.outputPad = outputPad;
 		this.markdownTransformers = markdownTransformers;
@@ -148,7 +150,7 @@ export class AssistantMessageComponent extends Container {
 							thinkingBlocks.join("\n\n"),
 							this.outputPad,
 							0,
-							this.markdownTheme,
+							this.thinkingMarkdownTheme,
 							{
 								color: (text: string) => theme.fg("thinkingText", text),
 								italic: true,

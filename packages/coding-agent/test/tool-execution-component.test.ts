@@ -35,6 +35,25 @@ describe("ToolExecutionComponent parity", () => {
 		initTheme("dark");
 	});
 
+	test("renders compact status-prefixed tool rows", () => {
+		const component = new ToolExecutionComponent(
+			"read",
+			"tool-status",
+			{ path: "README.md" },
+			{},
+			createReadToolDefinition(process.cwd()),
+			createFakeTui(),
+			process.cwd(),
+		);
+
+		const pending = stripAnsi(component.render(120).join("\n"));
+		expect(pending).toContain("● read docs README.md");
+		expect(pending).not.toContain("\n\n");
+
+		component.updateResult({ content: [{ type: "text", text: "done" }], isError: false }, false);
+		expect(stripAnsi(component.render(120).join("\n"))).toContain("● read docs README.md");
+	});
+
 	test("stacks custom call and result renderers like the old implementation", () => {
 		const toolDefinition: ToolDefinition = {
 			...createBaseToolDefinition(),

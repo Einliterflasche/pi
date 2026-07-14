@@ -2,7 +2,7 @@ import type { AssistantMessage } from "@earendil-works/pi-ai";
 import { describe, expect, test } from "vitest";
 import { AssistantMessageComponent } from "../src/modes/interactive/components/assistant-message.ts";
 import { UserMessageComponent } from "../src/modes/interactive/components/user-message.ts";
-import { initTheme } from "../src/modes/interactive/theme/theme.ts";
+import { getMarkdownTheme, initTheme } from "../src/modes/interactive/theme/theme.ts";
 import { stripAnsi } from "../src/utils/ansi.ts";
 
 const OSC133_ZONE_START = "\x1b]133;A\x07";
@@ -89,6 +89,33 @@ describe("AssistantMessageComponent", () => {
 
 		expect(rendered.match(/Thinking\.\.\./g)).toHaveLength(1);
 		expect(rendered).toContain("answer");
+	});
+
+	test("renders reasoning as italic without combining it with bold", () => {
+		initTheme("dark");
+
+		const markdownTheme = {
+			...getMarkdownTheme(),
+			bold: (text: string) => `\x1b[1m${text}\x1b[22m`,
+			italic: (text: string) => `\x1b[3m${text}\x1b[23m`,
+		};
+		const thinking = new AssistantMessageComponent(
+			createAssistantMessage([{ type: "thinking", thinking: "**Switching to full read method**" }]),
+			false,
+			markdownTheme,
+		);
+		const thinkingOutput = thinking.render(80).join("\n");
+		expect(thinkingOutput).toContain("\x1b[3m");
+		expect(thinkingOutput).not.toContain("\x1b[1m");
+
+		const response = new AssistantMessageComponent(
+			createAssistantMessage([{ type: "text", text: "**Switching to full read method**" }]),
+			false,
+			markdownTheme,
+		);
+		const responseOutput = response.render(80).join("\n");
+		expect(responseOutput).toContain("\x1b[1m");
+		expect(responseOutput).not.toContain("\x1b[3m");
 	});
 
 	test("uses configured output padding for text and thinking", () => {
