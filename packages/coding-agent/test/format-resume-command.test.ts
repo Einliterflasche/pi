@@ -4,10 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { APP_NAME } from "../src/config.ts";
 import type { SessionManager } from "../src/core/session-manager.ts";
-import {
-	formatResumeCommand,
-	formatUpstreamVersionNotification,
-} from "../src/modes/interactive/interactive-mode.ts";
+import { formatResumeCommand, formatUpstreamVersionNotification } from "../src/modes/interactive/interactive-mode.ts";
 
 const tempDirs: string[] = [];
 const originalStdoutIsTTY = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");

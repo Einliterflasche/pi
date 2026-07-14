@@ -1,4 +1,11 @@
-import { Editor, type EditorOptions, type EditorTheme, type TUI, visibleWidth } from "@earendil-works/pi-tui";
+import {
+	Editor,
+	type EditorOptions,
+	type EditorTheme,
+	type TUI,
+	truncateToWidth,
+	visibleWidth,
+} from "@earendil-works/pi-tui";
 import type { AppKeybinding, KeybindingsManager } from "../../../core/keybindings.ts";
 import type { StatusIndicator } from "./status-indicator.ts";
 
@@ -20,6 +27,7 @@ export class CustomEditor extends Editor {
 	public onEscape?: () => void;
 	public onCtrlD?: () => void;
 	public onPasteImage?: () => void;
+	private modeIndicator = "";
 	/** Handler for extension-registered shortcuts. Returns true if handled. */
 	public onExtensionShortcut?: (data: string) => boolean;
 
@@ -76,6 +84,19 @@ export class CustomEditor extends Editor {
 			status +
 			this.borderColor("─".repeat(Math.max(0, width - prefixWidth - statusWidth)))
 		);
+	}
+
+	setModeIndicator(indicator: string): void {
+		this.modeIndicator = indicator;
+		this.invalidate();
+	}
+
+	override render(width: number): string[] {
+		const lines = super.render(width);
+		if (!this.modeIndicator || lines.length === 0) return lines;
+		const remainingWidth = Math.max(0, width - visibleWidth(this.modeIndicator));
+		lines[0] = this.modeIndicator + truncateToWidth(lines[0] ?? "", remainingWidth, "");
+		return lines;
 	}
 
 	/**
