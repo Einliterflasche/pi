@@ -152,7 +152,8 @@ This routing remains configurable through the ordinary action bindings. For exam
 | `app.model.cycleForward` | `alt+p` | Cycle to next model |
 | `app.model.cycleBackward` | `shift+alt+p` (`alt+p` on Windows and WSL) | Cycle to previous model |
 | `app.models.save` | `ctrl+s` | Save the selected default model or scoped model configuration to settings |
-| `app.thinking.cycle` | `shift+tab` | Cycle thinking level |
+| `app.permissions.cycle` | `shift+tab` | Cycle tool permission mode |
+| `app.thinking.cycle` | `alt+t` | Cycle thinking level |
 | `app.thinking.save` | `ctrl+s` | Save current thinking level to settings |
 | `app.thinking.toggle` | `ctrl+t` | Collapse or expand thinking blocks |
 
