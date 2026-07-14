@@ -13,8 +13,8 @@
  * Modes use this class and add their own I/O layer on top.
  */
 
-import { readFileSync } from "node:fs";
-import { basename, dirname } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import {
 	type AfterToolCallContext,
 	type AfterToolCallResult,
@@ -114,10 +114,22 @@ import {
 } from "./extensions/index.ts";
 import { emitSessionShutdownEvent } from "./extensions/runner.ts";
 import { createToolNameMatcher, isMcpToolName } from "./mcp-servers.ts";
-import { type BashExecutionMessage, type CustomMessage, convertToLlm } from "./messages.ts";
+import {
+	type BashExecutionMessage,
+	BRANCH_SUMMARY_PREFIX,
+	COMPACTION_SUMMARY_PREFIX,
+	type CustomMessage,
+	convertToLlm,
+} from "./messages.ts";
 import { ModelRegistry } from "./model-registry.ts";
 import type { ModelRuntime } from "./model-runtime.ts";
 import { NestedToolCallRunner } from "./nested-tool-calls.ts";
+import {
+	PermissionController,
+	type PermissionMode,
+	type PermissionRequest,
+	parseClassifierResult,
+} from "./permissions.ts";
 import { expandPromptTemplate, type PromptTemplate } from "./prompt-templates.ts";
 import type { ResourceExtensionPaths, ResourceLoader } from "./resource-loader.ts";
 import { exportSessionToJsonl } from "./session-export.ts";
@@ -363,6 +375,16 @@ interface ToolDefinitionEntry {
 	sourceInfo: SourceInfo;
 }
 
+function isInsideVersionControlledWorktree(cwd: string): boolean {
+	let directory = cwd;
+	while (true) {
+		if (existsSync(join(directory, ".git"))) return true;
+		const parent = dirname(directory);
+		if (parent === directory) return false;
+		directory = parent;
+	}
+}
+
 function estimateMessagesTokens(messages: AgentMessage[]): number {
 	let tokens = 0;
 	for (const message of messages) {
@@ -465,6 +487,10 @@ export class AgentSession {
 	private _extensionErrorListener?: ExtensionErrorListener;
 	private _extensionErrorUnsubscriber?: () => void;
 
+	// Tool permissions
+	private _permissionController?: PermissionController;
+	private _permissionUserMessages: string[] = [];
+
 	private _modelRuntime: ModelRuntime;
 	private _cacheWarmer?: Pick<CacheWarmer, "cancel" | "status" | "onAgentSettled" | "onModeChanged" | "onWarmed">;
 
@@ -527,6 +553,89 @@ export class AgentSession {
 
 	get modelRuntime(): ModelRuntime {
 		return this._modelRuntime;
+	}
+
+	enablePermissions(
+		requestApproval: (
+			request: PermissionRequest,
+			reason: string | undefined,
+			signal?: AbortSignal,
+		) => Promise<boolean>,
+		mode: PermissionMode = "manual",
+	): void {
+		this._permissionController = new PermissionController({
+			mode,
+			classify: async (request, signal) => await this._classifyToolPermission(request, signal),
+			requestApproval,
+		});
+		this._permissionUserMessages = this._collectUserMessagesForPermissions();
+	}
+
+	get permissionMode(): PermissionMode {
+		return this._permissionController?.getMode() ?? "skip";
+	}
+
+	setPermissionMode(mode: PermissionMode): void {
+		this._permissionController?.setMode(mode);
+	}
+
+	private _collectUserMessagesForPermissions(): string[] {
+		return this.agent.state.messages.flatMap((message) => {
+			if (message.role !== "user") return [];
+			const text =
+				typeof message.content === "string"
+					? message.content
+					: message.content
+							.filter((content) => content.type === "text")
+							.map((content) => content.text)
+							.join("\n");
+			if (!text || text.startsWith(COMPACTION_SUMMARY_PREFIX) || text.startsWith(BRANCH_SUMMARY_PREFIX)) return [];
+			const skill = parseSkillBlock(text);
+			if (skill) return skill.userMessage ? [skill.userMessage] : [];
+			return [text];
+		});
+	}
+
+	private async _classifyToolPermission(request: PermissionRequest, signal?: AbortSignal) {
+		const model = this.model;
+		if (!model) throw new Error(formatNoModelSelectedMessage());
+
+		const policy = `You are a tool permission classifier. Decide whether the proposed tool call is reasonably expected from the user's requests.
+
+Return exactly one JSON object with no markdown and no extra fields:
+- {"approved":true}
+- {"approved":false,"reason":"brief reason"}
+
+Approve ordinary, expected work inside a version-controlled project more readily. Be strict about system changes, privilege escalation, credentials, deployments, publishing, operating-system or package-manager updates, destructive Git operations, deleting data, irreversible actions, remote side effects, and any scope broader than the user reasonably requested. Deny ambiguous access.
+
+Proposed tool call:
+${JSON.stringify({
+	cwd: request.cwd,
+	insideVersionControlledWorktree: isInsideVersionControlledWorktree(request.cwd),
+	tool: request.toolName,
+	arguments: request.args,
+})}`;
+		const userMessages: Message[] = request.userMessages.map((text) => ({
+			role: "user",
+			content: [{ type: "text", text }],
+			timestamp: Date.now(),
+		}));
+		const auth = await this._getRequiredRequestAuth(model);
+		const stream = streamSimple(
+			model,
+			{ systemPrompt: policy, messages: userMessages },
+			{ ...auth, signal, maxRetries: 0 },
+		);
+		const response = await stream.result();
+		if (response.stopReason === "error" || response.stopReason === "aborted") {
+			throw new Error(response.errorMessage ?? `Classifier stopped: ${response.stopReason}`);
+		}
+		const text = response.content
+			.filter((content) => content.type === "text")
+			.map((content) => content.text)
+			.join("")
+			.trim();
+		return parseClassifierResult(text);
 	}
 
 	private async _getRequiredRequestAuth(
@@ -650,34 +759,45 @@ export class AgentSession {
 	 * happens here instead of in wrappers.
 	 */
 	private _installAgentToolHooks(): void {
-		this.agent.beforeToolCall = (context) => this._beforeToolCall(context);
+		this.agent.beforeToolCall = (context, signal) => this._beforeToolCall(context, undefined, signal);
 		this.agent.afterToolCall = (context) => this._afterToolCall(context);
 	}
 
 	/** `tool_call` handlers. `parentToolCallId` is set for calls another tool made. */
 	private async _beforeToolCall(
 		{ toolCall, args }: BeforeToolCallContext,
-		parentToolCallId?: string,
+		parentToolCallId: string | undefined,
+		signal?: AbortSignal,
 	): Promise<BeforeToolCallResult | undefined> {
 		const runner = this._extensionRunner;
-		if (!runner.hasHandlers("tool_call")) {
-			return undefined;
+		if (runner.hasHandlers("tool_call")) {
+			try {
+				const extensionResult = await runner.emitToolCall({
+					type: "tool_call",
+					toolName: toolCall.name,
+					toolCallId: toolCall.id,
+					...(parentToolCallId ? { parentToolCallId } : {}),
+					input: args as Record<string, unknown>,
+				});
+				if (extensionResult?.block) return extensionResult;
+			} catch (err) {
+				if (err instanceof Error) throw err;
+				throw new Error(`Extension failed, blocking execution: ${String(err)}`);
+			}
 		}
 
-		try {
-			return await runner.emitToolCall({
-				type: "tool_call",
+		if (!this._permissionController) return undefined;
+		const decision = await this._permissionController.evaluate(
+			{
 				toolName: toolCall.name,
-				toolCallId: toolCall.id,
-				...(parentToolCallId ? { parentToolCallId } : {}),
-				input: args as Record<string, unknown>,
-			});
-		} catch (err) {
-			if (err instanceof Error) {
-				throw err;
-			}
-			throw new Error(`Extension failed, blocking execution: ${String(err)}`);
-		}
+				args,
+				userMessages: [...this._permissionUserMessages],
+				cwd: this._cwd,
+				exempt: this._toolDefinitions.get(toolCall.name)?.sourceInfo.source === "builtin",
+			},
+			signal,
+		);
+		return decision.approved ? undefined : { block: true, reason: decision.reason };
 	}
 
 	/** `tool_result` handlers and image normalization. `parentToolCallId` is set for calls another tool made. */
@@ -749,7 +869,7 @@ export class AgentSession {
 					tools: this._getCallableTools(),
 					assistantMessage,
 					context: { messages: this.agent.state.messages, tools: this.agent.state.tools },
-					beforeToolCall: (context) => this._beforeToolCall(context, parentId),
+					beforeToolCall: (context, callSignal) => this._beforeToolCall(context, parentId, callSignal),
 					afterToolCall: (context) => this._afterToolCall(context, parentId),
 					signal,
 					onUpdate,
@@ -2001,6 +2121,11 @@ export class AgentSession {
 			return;
 		}
 		const { text: currentText, images: currentImages } = processedInput;
+
+		if (this._permissionController && (options?.source ?? "interactive") === "interactive") {
+			this._permissionController.onUserMessage();
+			this._permissionUserMessages.push(text);
+		}
 
 		// Expand skill commands (/skill:name args) and prompt templates (/template args)
 		let expandedText = currentText;
