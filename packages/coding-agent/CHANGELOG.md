@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
+
 ### Fixed
 
 - Fixed the write tool reporting UTF-16 code-unit counts as byte counts by removing the misleading count ([#8979](https://github.com/earendil-works/pi/issues/8979)).
