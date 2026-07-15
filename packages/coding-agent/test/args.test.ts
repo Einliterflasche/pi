@@ -141,6 +141,12 @@ describe("parseArgs", () => {
 			expect(result.messages).toEqual([]);
 		});
 
+		test("parses the internal fork editor handoff path", () => {
+			const result = parseArgs(["--initial-editor-text-file", "/tmp/pi-fork-editor-test.txt"]);
+			expect(result.initialEditorTextFile).toBe("/tmp/pi-fork-editor-test.txt");
+			expect(result.unknownFlags.size).toBe(0);
+		});
+
 		test("parses --export", () => {
 			const result = parseArgs(["--export", "session.jsonl"]);
 			expect(result.export).toBe("session.jsonl");
