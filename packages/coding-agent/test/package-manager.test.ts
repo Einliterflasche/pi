@@ -325,6 +325,31 @@ Content`,
 			expect(skill?.metadata.baseDir).toBe(projectBaseDir);
 		});
 
+		it("should use each project .claude dir as baseDir for project Claude skills", async () => {
+			const repoRoot = join(tempDir, "repo");
+			const nestedCwd = join(repoRoot, "packages", "feature");
+			mkdirSync(nestedCwd, { recursive: true });
+			mkdirSync(join(repoRoot, ".git"), { recursive: true });
+
+			const claudeBaseDir = join(repoRoot, ".claude");
+			const skillPath = join(claudeBaseDir, "skills", "project-claude", "SKILL.md");
+			mkdirSync(join(claudeBaseDir, "skills", "project-claude"), { recursive: true });
+			writeFileSync(skillPath, "---\nname: project-claude\ndescription: project claude\n---\n");
+
+			const pm = new DefaultPackageManager({
+				cwd: nestedCwd,
+				agentDir,
+				settingsManager,
+			});
+
+			const result = await pm.resolve();
+			const skill = result.skills.find((resource) => resource.path === skillPath);
+
+			expect(skill?.metadata.source).toBe("auto");
+			expect(skill?.metadata.scope).toBe("project");
+			expect(skill?.metadata.baseDir).toBe(claudeBaseDir);
+		});
+
 		it("should use ~/.agents as baseDir for user .agents skills", async () => {
 			const previousHome = process.env.HOME;
 			process.env.HOME = tempDir;
@@ -382,6 +407,59 @@ Content`,
 			expect(resolvedPackageSkill?.metadata.source).toBe("auto");
 			expect(resolvedPackageSkill?.metadata.scope).toBe("project");
 			expect(resolvedPackageSkill?.metadata.baseDir).toBe(packageAgentsBaseDir);
+		});
+	});
+
+	describe(".claude/skills auto-discovery", () => {
+		it("should scan .claude/skills from cwd up to git repo root", async () => {
+			const repoRoot = join(tempDir, "repo");
+			const nestedCwd = join(repoRoot, "packages", "feature");
+			mkdirSync(nestedCwd, { recursive: true });
+			mkdirSync(join(repoRoot, ".git"), { recursive: true });
+
+			const aboveRepoSkill = join(tempDir, ".claude", "skills", "above-repo", "SKILL.md");
+			mkdirSync(join(tempDir, ".claude", "skills", "above-repo"), { recursive: true });
+			writeFileSync(aboveRepoSkill, "---\nname: above-repo\ndescription: above\n---\n");
+
+			const repoRootSkill = join(repoRoot, ".claude", "skills", "repo-root", "SKILL.md");
+			mkdirSync(join(repoRoot, ".claude", "skills", "repo-root"), { recursive: true });
+			writeFileSync(repoRootSkill, "---\nname: repo-root\ndescription: repo\n---\n");
+
+			const nestedSkill = join(repoRoot, "packages", ".claude", "skills", "nested", "SKILL.md");
+			mkdirSync(join(repoRoot, "packages", ".claude", "skills", "nested"), { recursive: true });
+			writeFileSync(nestedSkill, "---\nname: nested\ndescription: nested\n---\n");
+
+			const pm = new DefaultPackageManager({
+				cwd: nestedCwd,
+				agentDir,
+				settingsManager,
+			});
+
+			const result = await pm.resolve();
+			expect(result.skills.some((resource) => resource.path === repoRootSkill && resource.enabled)).toBe(true);
+			expect(result.skills.some((resource) => resource.path === nestedSkill && resource.enabled)).toBe(true);
+			expect(result.skills.some((resource) => resource.path === aboveRepoSkill)).toBe(false);
+		});
+
+		it("should ignore root markdown files and untrusted project skills", async () => {
+			const claudeSkillsDir = join(tempDir, ".claude", "skills");
+			const rootSkill = join(claudeSkillsDir, "root-file.md");
+			const nestedSkill = join(claudeSkillsDir, "nested-skill", "SKILL.md");
+			mkdirSync(join(claudeSkillsDir, "nested-skill"), { recursive: true });
+			writeFileSync(rootSkill, "---\nname: root-file\ndescription: root\n---\n");
+			writeFileSync(nestedSkill, "---\nname: nested-skill\ndescription: nested\n---\n");
+
+			const trustedResult = await packageManager.resolve();
+			expect(trustedResult.skills.some((resource) => resource.path === rootSkill)).toBe(false);
+			expect(trustedResult.skills.some((resource) => resource.path === nestedSkill && resource.enabled)).toBe(true);
+
+			const untrustedPackageManager = new DefaultPackageManager({
+				cwd: tempDir,
+				agentDir,
+				settingsManager: SettingsManager.inMemory({}, { projectTrusted: false }),
+			});
+			const untrustedResult = await untrustedPackageManager.resolve();
+			expect(untrustedResult.skills.some((resource) => resource.path === nestedSkill)).toBe(false);
 		});
 	});
 

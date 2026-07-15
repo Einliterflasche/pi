@@ -31,6 +31,10 @@
 - Added GPT-6 Astra for OpenAI API keys and OpenAI Codex subscriptions.
 - Added five-times-faster mouse wheel scrolling while holding Alt in fullscreen mode ([#9166](https://github.com/earendil-works/pi/pull/9166) by [@xl0](https://github.com/xl0)).
 
+### Added
+
+- Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
+
 ### Fixed
 
 - Fixed configurable save keybindings in the model and thinking selectors ([#9149](https://github.com/earendil-works/pi/pull/9149) by [@rwachtler](https://github.com/rwachtler)).
