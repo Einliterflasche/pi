@@ -126,6 +126,8 @@ Selecting the root user message resets the leaf to an empty conversation and pla
 
 Use `/tree` when you want to keep alternatives together. Use `/fork` or `/clone` when you want a separate session file.
 
+Inside Zellij, when the `zellij` binary is available, `/fork` opens the new session in a new pane in the same tab and leaves the original session in its current pane. The selected prompt is prefilled in the new pane. Ephemeral `--no-session` sessions retain the in-process behavior.
+
 ## Branch Summaries
 
 When `/tree` switches away from one branch to another, pi can summarize the abandoned branch and attach that summary at the new position. This preserves important context from the path you left without replaying the whole branch.

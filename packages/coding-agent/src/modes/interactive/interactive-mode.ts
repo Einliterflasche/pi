@@ -171,6 +171,7 @@ import {
 	theme,
 } from "./theme/theme.ts";
 import { InteractiveThemeController } from "./theme/theme-controller.ts";
+import { isZellijAvailable, openForkInZellij } from "./zellij-fork.ts";
 
 /** Interface for components that can be expanded/collapsed */
 interface Expandable {
@@ -357,6 +358,10 @@ export interface InteractiveModeOptions {
 	tuiMode?: TuiMode;
 	/** Initial interactive theme setting for this invocation. */
 	initialThemeSetting?: string;
+	/** Initial editor content supplied by a detached fork handoff. */
+	initialEditorText?: string;
+	/** CLI arguments to preserve when launching a detached fork. Undefined disables relaunching. */
+	forkRelaunchArgs?: string[];
 }
 
 interface InteractiveTuiOptions {
@@ -1048,6 +1053,9 @@ export class InteractiveMode {
 
 		// Render initial messages AFTER showing loaded resources
 		this.renderInitialMessages();
+		if (this.options.initialEditorText !== undefined) {
+			this.editor.setText(this.options.initialEditorText);
+		}
 
 		// Set up theme file watcher
 		onThemeChange(() => {
@@ -5177,6 +5185,50 @@ export class InteractiveMode {
 		});
 	}
 
+	private async forkFromSelectedMessage(entryId: string): Promise<void> {
+		const relaunchArgs = this.options.forkRelaunchArgs;
+		if (relaunchArgs !== undefined && this.sessionManager.isPersisted() && isZellijAvailable()) {
+			let detachedSessionFile: string | undefined;
+			try {
+				const result = await this.runtimeHost.forkDetached(entryId);
+				if (result.cancelled) {
+					this.ui.requestRender();
+					return;
+				}
+				detachedSessionFile = result.sessionFile;
+				await openForkInZellij({
+					cwd: this.sessionManager.getCwd(),
+					sessionFile: detachedSessionFile,
+					selectedText: result.selectedText ?? "",
+					relaunchArgs,
+				});
+				this.showStatus("Forked to new Zellij pane");
+				return;
+			} catch (error: unknown) {
+				if (detachedSessionFile) {
+					fs.rmSync(detachedSessionFile, { force: true });
+				}
+				this.showError(
+					`Failed to fork into Zellij pane: ${error instanceof Error ? error.message : String(error)}`,
+				);
+				return;
+			}
+		}
+
+		try {
+			const result = await this.runtimeHost.fork(entryId);
+			if (result.cancelled) {
+				this.ui.requestRender();
+				return;
+			}
+
+			this.editor.setText(result.selectedText ?? "");
+			this.showStatus("Forked to new session");
+		} catch (error: unknown) {
+			this.showError(error instanceof Error ? error.message : String(error));
+		}
+	}
+
 	private showUserMessageSelector(): void {
 		const userMessages = this.session.getUserMessagesForForking();
 
@@ -5192,18 +5244,7 @@ export class InteractiveMode {
 				userMessages.map((m) => ({ id: m.entryId, text: m.text })),
 				async (entryId) => {
 					done();
-					try {
-						const result = await this.runtimeHost.fork(entryId);
-						if (result.cancelled) {
-							this.ui.requestRender();
-							return;
-						}
-
-						this.editor.setText(result.selectedText ?? "");
-						this.showStatus("Forked to new session");
-					} catch (error: unknown) {
-						this.showError(error instanceof Error ? error.message : String(error));
-					}
+					await this.forkFromSelectedMessage(entryId);
 				},
 				() => {
 					done();
