@@ -57,6 +57,8 @@ See the [documentation](docs/index.md) for full setup and usage instructions.
 
 Pi discovers project skills in `.pi/skills/`, `.claude/skills/`, and `.agents/skills/` after you trust the project. See [Skills](docs/skills.md) for discovery boundaries and global locations.
 
+Inside Zellij, `/fork` opens a new pane in the same tab when the `zellij` binary is available. The original pane keeps its session. See [Sessions](docs/sessions.md) for details.
+
 ## Share your OSS coding agent sessions
 
 If you use Pi for open source work, please share your coding agent sessions.

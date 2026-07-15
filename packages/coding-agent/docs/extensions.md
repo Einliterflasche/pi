@@ -49,6 +49,8 @@ Use a single file for a small extension and a directory for a multi-file impleme
 
 Reload replaces the extension runtime, so code after `await ctx.reload()` must not reuse state from the old runtime. Only personal and explicit command-line extensions can participate in the `project_trust` event that runs before project extensions load.
 
+Project trust also covers `.claude/skills/` and `.agents/skills/`.
+
 <a id="understand-the-lifecycle"></a>
 
 ## Respect the runtime lifecycle
@@ -65,6 +67,10 @@ Automatic retries, recovery, compaction, or queued work can continue afterward.
 
 `agent_before_settle` is the final actionable boundary: it can append entries and request one continuation.
 `agent_settled` is final and notification-only; use it when an integration needs to know Pi will not continue automatically.
+
+An in-process fork or clone emits `session_shutdown`, reloads extensions, and emits `session_start` with `reason: "fork"` and `previousSessionFile`.
+
+A detached Zellij fork emits `session_before_fork` in the original runtime, which stays active without replacement shutdown or startup events. The new pane starts a separate process with normal startup events.
 
 <a id="extensionapi-methods"></a>
 

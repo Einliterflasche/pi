@@ -31,6 +31,8 @@ In `/tree`, select a user message to put its text back in the editor. Edit and s
 
 When you leave a branch, Pi can summarize it and attach that summary to the branch you enter. This preserves relevant work from the abandoned path without including every message from it.
 
+Inside Zellij, `/fork` opens a new pane in the same tab when the `zellij` binary is available. The original pane keeps its session, and the new pane starts with the selected prompt in its editor. Ephemeral `--no-session` sessions keep the in-process behavior.
+
 For the persisted tree and entry types, see [Session Format](session-format.md).
 
 ## Manage conversation context
