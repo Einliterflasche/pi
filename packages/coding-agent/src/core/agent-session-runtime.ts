@@ -164,6 +164,27 @@ export class AgentSessionRuntime {
 		return { cancelled: result?.cancel === true };
 	}
 
+	private resolveForkTarget(
+		entryId: string,
+		position: "before" | "at",
+	): { targetLeafId: string | null; selectedText?: string } {
+		const selectedEntry = this.session.sessionManager.getEntry(entryId);
+		if (!selectedEntry) {
+			throw new Error("Invalid entry ID for forking");
+		}
+
+		if (position === "at") {
+			return { targetLeafId: selectedEntry.id };
+		}
+		if (selectedEntry.type !== "message" || selectedEntry.message.role !== "user") {
+			throw new Error("Invalid entry ID for forking");
+		}
+		return {
+			targetLeafId: selectedEntry.parentId,
+			selectedText: extractUserMessageText(selectedEntry.message.content),
+		};
+	}
+
 	private async teardownCurrent(reason: SessionShutdownEvent["reason"], targetSessionFile?: string): Promise<void> {
 		await emitSessionShutdownEvent(this.session.extensionRunner, {
 			type: "session_shutdown",
@@ -256,6 +277,24 @@ export class AgentSessionRuntime {
 		return { cancelled: false };
 	}
 
+	async forkDetached(
+		entryId: string,
+		options?: { position?: "before" | "at" },
+	): Promise<{ cancelled: true } | { cancelled: false; selectedText: string | undefined; sessionFile: string }> {
+		const position = options?.position ?? "before";
+		const beforeResult = await this.emitBeforeFork(entryId, { position });
+		if (beforeResult.cancelled) {
+			return { cancelled: true };
+		}
+
+		const { targetLeafId, selectedText } = this.resolveForkTarget(entryId, position);
+		return {
+			cancelled: false,
+			selectedText,
+			sessionFile: this.session.sessionManager.createDetachedBranchedSession(targetLeafId),
+		};
+	}
+
 	async fork(
 		entryId: string,
 		options?: { position?: "before" | "at"; withSession?: (ctx: ReplacedSessionContext) => Promise<void> },
@@ -265,24 +304,7 @@ export class AgentSessionRuntime {
 		if (beforeResult.cancelled) {
 			return { cancelled: true };
 		}
-		let targetLeafId: string | null;
-		let selectedText: string | undefined;
-
-		const selectedEntry = this.session.sessionManager.getEntry(entryId);
-		if (!selectedEntry) {
-			throw new Error("Invalid entry ID for forking");
-		}
-
-		if (position === "at") {
-			targetLeafId = selectedEntry.id;
-		} else {
-			if (selectedEntry.type !== "message" || selectedEntry.message.role !== "user") {
-				throw new Error("Invalid entry ID for forking");
-			}
-			targetLeafId = selectedEntry.parentId;
-			selectedText = extractUserMessageText(selectedEntry.message.content);
-		}
-
+		const { targetLeafId, selectedText } = this.resolveForkTarget(entryId, position);
 		const previousSessionFile = this.session.sessionFile;
 		if (this.session.sessionManager.isPersisted()) {
 			const currentSessionFile = this.session.sessionFile;

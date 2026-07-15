@@ -159,6 +159,7 @@ const runtime = await createAgentSessionRuntime(createRuntime, {
 - `newSession()`
 - `switchSession()`
 - `fork()`
+- `forkDetached()` for creating a persisted branch without replacing the active runtime
 - clone flows via `fork(entryId, { position: "at" })`
 - `importFromJsonl()`
 
@@ -346,6 +347,7 @@ const { session } = await createAgentSession({
 - Project extensions (`.pi/extensions/`)
 - Project skills:
   - `.pi/skills/`
+  - `.claude/skills/` in `cwd` and ancestor directories (up to git repo root, or filesystem root when not in a repo)
   - `.agents/skills/` in `cwd` and ancestor directories (up to git repo root, or filesystem root when not in a repo)
 - Project prompts (`.pi/prompts/`)
 - Context files (`AGENTS.md` walking up from cwd)
@@ -790,6 +792,9 @@ await runtime.switchSession("/path/to/session.jsonl");
 
 // Replace the active session with a fork from a specific user entry
 await runtime.fork("entry-id");
+
+// Create a persisted fork without replacing the active runtime
+const detached = await runtime.forkDetached("entry-id");
 
 // Clone the active path through a specific entry
 await runtime.fork("entry-id", { position: "at" });

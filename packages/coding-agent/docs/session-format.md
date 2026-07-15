@@ -385,7 +385,8 @@ Key methods for working with sessions programmatically.
 ### Instance Methods - Session Management
 - `newSession(options?)` - Start a new session (options: `{ parentSession?: string }`)
 - `setSessionFile(path)` - Switch to a different session file
-- `createBranchedSession(leafId)` - Extract branch to new session file
+- `createBranchedSession(leafId)` - Extract branch to a new session file and switch the manager to it
+- `createDetachedBranchedSession(leafId)` - Extract a persisted branch without changing the current manager; pass `null` for an empty child session
 
 ### Instance Methods - Appending (all return entry ID)
 - `appendMessage(message)` - Add message

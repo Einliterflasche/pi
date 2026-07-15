@@ -27,6 +27,7 @@ export interface Args {
 	sessionId?: string;
 	fork?: string;
 	sessionDir?: string;
+	initialEditorTextFile?: string;
 	models?: string[];
 	tools?: string[];
 	excludeTools?: string[];
@@ -111,6 +112,8 @@ export function parseArgs(args: string[]): Args {
 			result.fork = args[++i];
 		} else if (arg === "--session-dir" && i + 1 < args.length) {
 			result.sessionDir = args[++i];
+		} else if (arg === "--initial-editor-text-file" && i + 1 < args.length) {
+			result.initialEditorTextFile = args[++i];
 		} else if (arg === "--models" && i + 1 < args.length) {
 			result.models = args[++i].split(",").map((s) => s.trim());
 		} else if (arg === "--no-tools" || arg === "-nt") {

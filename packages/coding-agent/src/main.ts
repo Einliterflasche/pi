@@ -26,6 +26,7 @@ import { formatNoModelsAvailableMessage } from "./core/auth-guidance.ts";
 import { AuthStorage } from "./core/auth-storage.ts";
 import { exportFromFile } from "./core/export-html/index.ts";
 import type { InlineExtension } from "./core/extensions/types.ts";
+import { consumeForkEditorTextFile } from "./core/fork-handoff.ts";
 import { applyHttpProxySettings, configureHttpDispatcher } from "./core/http-dispatcher.ts";
 import type { ModelRegistry } from "./core/model-registry.ts";
 import { resolveCliModel, resolveModelScope, type ScopedModel } from "./core/model-resolver.ts";
@@ -456,6 +457,55 @@ function resolveCliPaths(cwd: string, paths: string[] | undefined): string[] | u
 	return paths?.map((value) => (isLocalPath(value) ? resolvePath(value, cwd) : value));
 }
 
+export function buildForkRelaunchArgs(
+	parsed: Args,
+	paths: {
+		extensions?: string[];
+		skills?: string[];
+		promptTemplates?: string[];
+		themes?: string[];
+	},
+): string[] {
+	const args: string[] = [];
+	const addValue = (flag: string, value: string | undefined): void => {
+		if (value !== undefined) args.push(flag, value);
+	};
+	const addValues = (flag: string, values: readonly string[] | undefined): void => {
+		for (const value of values ?? []) args.push(flag, value);
+	};
+
+	addValue("--provider", parsed.provider);
+	addValue("--model", parsed.model);
+	addValue("--api-key", parsed.apiKey);
+	addValue("--system-prompt", parsed.systemPrompt);
+	addValues("--append-system-prompt", parsed.appendSystemPrompt);
+	addValue("--thinking", parsed.thinking);
+	if (parsed.models) args.push("--models", parsed.models.join(","));
+	if (parsed.tools) args.push("--tools", parsed.tools.join(","));
+	if (parsed.excludeTools) args.push("--exclude-tools", parsed.excludeTools.join(","));
+	if (parsed.noTools) args.push("--no-tools");
+	if (parsed.noBuiltinTools) args.push("--no-builtin-tools");
+	addValues("--extension", paths.extensions);
+	if (parsed.noExtensions) args.push("--no-extensions");
+	addValues("--skill", paths.skills);
+	if (parsed.noSkills) args.push("--no-skills");
+	addValues("--prompt-template", paths.promptTemplates);
+	if (parsed.noPromptTemplates) args.push("--no-prompt-templates");
+	addValues("--theme", paths.themes);
+	if (parsed.noThemes) args.push("--no-themes");
+	if (parsed.noContextFiles) args.push("--no-context-files");
+	if (parsed.verbose) args.push("--verbose");
+	if (parsed.projectTrustOverride === true) args.push("--approve");
+	if (parsed.projectTrustOverride === false) args.push("--no-approve");
+	if (parsed.offline) args.push("--offline");
+
+	for (const [name, value] of parsed.unknownFlags) {
+		args.push(`--${name}`);
+		if (typeof value === "string") args.push(value);
+	}
+	return args;
+}
+
 async function promptForMissingSessionCwd(
 	issue: SessionCwdIssue,
 	settingsManager: SettingsManager,
@@ -537,6 +587,20 @@ export async function main(args: string[], options?: MainOptions) {
 	}
 
 	let appMode = resolveAppMode(parsed, process.stdin.isTTY, process.stdout.isTTY);
+	let initialEditorText: string | undefined;
+	if (parsed.initialEditorTextFile) {
+		if (appMode !== "interactive") {
+			console.error(chalk.red("Error: fork editor handoff requires interactive mode"));
+			process.exit(1);
+		}
+		try {
+			initialEditorText = consumeForkEditorTextFile(parsed.initialEditorTextFile);
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+			console.error(chalk.red(`Error: Failed to read fork editor handoff: ${message}`));
+			process.exit(1);
+		}
+	}
 	const shouldTakeOverStdout = appMode !== "interactive" && !isPlainRuntimeMetadataCommand(parsed);
 	if (shouldTakeOverStdout) {
 		takeOverStdout();
@@ -611,6 +675,12 @@ export async function main(args: string[], options?: MainOptions) {
 	const resolvedSkillPaths = resolveCliPaths(cwd, parsed.skills);
 	const resolvedPromptTemplatePaths = resolveCliPaths(cwd, parsed.promptTemplates);
 	const resolvedThemePaths = resolveCliPaths(cwd, parsed.themes);
+	const forkRelaunchArgs = buildForkRelaunchArgs(parsed, {
+		extensions: resolvedExtensionPaths,
+		skills: resolvedSkillPaths,
+		promptTemplates: resolvedPromptTemplatePaths,
+		themes: resolvedThemePaths,
+	});
 	const authStorage = AuthStorage.create();
 	const createRuntime: CreateAgentSessionRuntimeFactory = async ({
 		cwd,
@@ -819,6 +889,8 @@ export async function main(args: string[], options?: MainOptions) {
 			initialMessage,
 			initialImages,
 			initialMessages: parsed.messages,
+			initialEditorText,
+			forkRelaunchArgs: options?.extensionFactories?.length ? undefined : forkRelaunchArgs,
 			verbose: parsed.verbose,
 		});
 		if (startupBenchmark) {

@@ -1326,13 +1326,7 @@ export class SessionManager {
 		return entry.id;
 	}
 
-	/**
-	 * Create a new session file containing only the path from root to the specified leaf.
-	 * Useful for extracting a single conversation path from a branched session.
-	 * Returns the new session file path, or undefined if not persisting.
-	 */
-	createBranchedSession(leafId: string): string | undefined {
-		const previousSessionFile = this.sessionFile;
+	private buildBranchedEntries(leafId: string): SessionEntry[] {
 		const path = this.getBranch(leafId);
 		if (path.length === 0) {
 			throw new Error(`Entry ${leafId} not found`);
@@ -1349,6 +1343,35 @@ export class SessionManager {
 			pathParentId = entry.id;
 		}
 
+		const usedIds = new Set(pathWithoutLabels.map((entry) => entry.id));
+		const labelEntries: LabelEntry[] = [];
+		let parentId = pathWithoutLabels[pathWithoutLabels.length - 1]?.id ?? null;
+		for (const [targetId, label] of this.labelsById) {
+			if (!usedIds.has(targetId)) continue;
+			const labelEntry: LabelEntry = {
+				type: "label",
+				id: generateId(usedIds),
+				parentId,
+				timestamp: this.labelTimestampsById.get(targetId)!,
+				targetId,
+				label,
+			};
+			usedIds.add(labelEntry.id);
+			labelEntries.push(labelEntry);
+			parentId = labelEntry.id;
+		}
+
+		return [...pathWithoutLabels, ...labelEntries];
+	}
+
+	/**
+	 * Create a new session file containing only the path from root to the specified leaf.
+	 * Useful for extracting a single conversation path from a branched session.
+	 * Returns the new session file path, or undefined if not persisting.
+	 */
+	createBranchedSession(leafId: string): string | undefined {
+		const previousSessionFile = this.sessionFile;
+		const branchEntries = this.buildBranchedEntries(leafId);
 		const newSessionId = createSessionId();
 		const timestamp = new Date().toISOString();
 		const fileTimestamp = timestamp.replace(/[:.]/g, "-");
@@ -1363,74 +1386,56 @@ export class SessionManager {
 			parentSession: this.persist ? previousSessionFile : undefined,
 		};
 
-		// Collect labels for entries in the path
-		const pathEntryIds = new Set(pathWithoutLabels.map((e) => e.id));
-		const labelsToWrite: Array<{ targetId: string; label: string; timestamp: string }> = [];
-		for (const [targetId, label] of this.labelsById) {
-			if (pathEntryIds.has(targetId)) {
-				labelsToWrite.push({ targetId, label, timestamp: this.labelTimestampsById.get(targetId)! });
-			}
-		}
+		this.fileEntries = [header, ...branchEntries];
+		this.sessionId = newSessionId;
+		this._buildIndex();
 
 		if (this.persist) {
-			// Build label entries
-			const lastEntryId = pathWithoutLabels[pathWithoutLabels.length - 1]?.id || null;
-			let parentId = lastEntryId;
-			const labelEntries: LabelEntry[] = [];
-			for (const { targetId, label, timestamp: labelTimestamp } of labelsToWrite) {
-				const labelEntry: LabelEntry = {
-					type: "label",
-					id: generateId(new Set(pathEntryIds)),
-					parentId,
-					timestamp: labelTimestamp,
-					targetId,
-					label,
-				};
-				pathEntryIds.add(labelEntry.id);
-				labelEntries.push(labelEntry);
-				parentId = labelEntry.id;
-			}
-
-			this.fileEntries = [header, ...pathWithoutLabels, ...labelEntries];
-			this.sessionId = newSessionId;
 			this.sessionFile = newSessionFile;
-			this._buildIndex();
-
 			// Only write the file now if it contains an assistant message.
 			// Otherwise defer to _persist(), which creates the file on the
-			// first assistant response, matching the newSession() contract
-			// and avoiding the duplicate-header bug when _persist()'s
-			// no-assistant guard later resets flushed to false.
-			const hasAssistant = this.fileEntries.some((e) => e.type === "message" && e.message.role === "assistant");
+			// first assistant response, matching the newSession() contract.
+			const hasAssistant = this.fileEntries.some((entry) =>
+				entry.type === "message" ? entry.message.role === "assistant" : false,
+			);
 			if (hasAssistant) {
 				this._rewriteFile();
 				this.flushed = true;
 			} else {
 				this.flushed = false;
 			}
-
 			return newSessionFile;
 		}
 
-		// In-memory mode: replace current session with the path + labels
-		const labelEntries: LabelEntry[] = [];
-		let parentId = pathWithoutLabels[pathWithoutLabels.length - 1]?.id || null;
-		for (const { targetId, label, timestamp: labelTimestamp } of labelsToWrite) {
-			const labelEntry: LabelEntry = {
-				type: "label",
-				id: generateId(new Set([...pathEntryIds, ...labelEntries.map((e) => e.id)])),
-				parentId,
-				timestamp: labelTimestamp,
-				targetId,
-				label,
-			};
-			labelEntries.push(labelEntry);
-			parentId = labelEntry.id;
-		}
-		this.fileEntries = [header, ...pathWithoutLabels, ...labelEntries];
-		this.sessionId = newSessionId;
-		this._buildIndex();
 		return undefined;
+	}
+
+	/**
+	 * Create a persisted branch without changing this manager's active session.
+	 * A null leaf creates an empty child session rooted before the first entry.
+	 */
+	createDetachedBranchedSession(leafId: string | null): string {
+		if (!this.persist || !this.sessionFile) {
+			throw new Error("Cannot create a detached branch from an in-memory session");
+		}
+
+		const detached = SessionManager.create(this.cwd, this.getSessionDir(), {
+			parentSession: this.sessionFile,
+		});
+		const header = detached.getHeader();
+		if (!header) {
+			throw new Error("Failed to create detached session header");
+		}
+
+		detached.fileEntries = [header, ...(leafId === null ? [] : this.buildBranchedEntries(leafId))];
+		detached._buildIndex();
+		detached._rewriteFile();
+		detached.flushed = true;
+		const sessionFile = detached.getSessionFile();
+		if (!sessionFile) {
+			throw new Error("Detached branch is missing its session file");
+		}
+		return sessionFile;
 	}
 
 	/**

@@ -259,7 +259,7 @@ Use `/session` in interactive mode to see the current session ID before reusing 
 - Press Ctrl+X to copy the selected message
 - Press Shift+L to label entries as bookmarks and Shift+T to toggle label timestamps
 
-**`/fork`** - Create a new session file from a previous user message on the active branch. Opens a selector, copies the active path up to that point, and places the selected prompt in the editor for modification.
+**`/fork`** - Create a new session file from a previous user message on the active branch. Opens a selector, copies the active path up to that point, and places the selected prompt in the editor for modification. Inside Zellij, when the `zellij` binary is available, the fork opens in a new pane in the same tab while the original pane keeps its session.
 
 **`/clone`** - Duplicate the current active branch into a new session file at the current position. The new session keeps the full active-path history and opens with an empty editor.
 

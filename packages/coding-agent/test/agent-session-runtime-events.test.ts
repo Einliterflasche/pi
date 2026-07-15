@@ -207,8 +207,24 @@ describe("AgentSessionRuntime session lifecycle events", () => {
 
 		await runtimeHost.session.prompt("hello");
 		const userMessage = runtimeHost.session.getUserMessagesForForking()[0];
+		const previousSession = runtimeHost.session;
 		const previousSessionFile = runtimeHost.session.sessionFile;
 
+		const detachedResult = await runtimeHost.forkDetached(userMessage.entryId);
+		expect(detachedResult.cancelled).toBe(false);
+		if (detachedResult.cancelled) throw new Error("Detached fork was unexpectedly cancelled");
+		expect(detachedResult.selectedText).toBe("hello");
+		expect(detachedResult.sessionFile).toBeTruthy();
+		expect(existsSync(detachedResult.sessionFile!)).toBe(true);
+		expect(runtimeHost.session).toBe(previousSession);
+		expect(runtimeHost.session.sessionFile).toBe(previousSessionFile);
+		const detachedManager = SessionManager.open(detachedResult.sessionFile!);
+		expect(detachedManager.buildSessionContext().messages).toEqual([]);
+		expect(detachedManager.getHeader()?.parentSession).toBe(previousSessionFile);
+		expect(events).toEqual([{ type: "session_before_fork", entryId: userMessage.entryId, position: "before" }]);
+		rmSync(detachedResult.sessionFile!, { force: true });
+
+		events.length = 0;
 		const successResult = await runtimeHost.fork(userMessage.entryId);
 		expect(successResult.cancelled).toBe(false);
 		expect(successResult.selectedText).toBe("hello");
@@ -230,5 +246,30 @@ describe("AgentSessionRuntime session lifecycle events", () => {
 		const cancelAtResult = await runtimeHost.fork("missing-entry", { position: "at" });
 		expect(cancelAtResult).toEqual({ cancelled: true });
 		expect(events).toEqual([{ type: "session_before_fork", entryId: "missing-entry", position: "at" }]);
+	});
+
+	it("creates a detached fork from the middle without replacing the active runtime", async () => {
+		const { runtimeHost } = await createRuntimeHost(() => {});
+		await runtimeHost.session.prompt("one");
+		await runtimeHost.session.prompt("two");
+		const originalSession = runtimeHost.session;
+		const originalSessionFile = originalSession.sessionFile;
+		const secondUserMessage = originalSession.getUserMessagesForForking()[1];
+
+		const result = await runtimeHost.forkDetached(secondUserMessage.entryId);
+
+		expect(result.cancelled).toBe(false);
+		if (result.cancelled) throw new Error("Detached fork was unexpectedly cancelled");
+		expect(result.selectedText).toBe("two");
+		expect(runtimeHost.session).toBe(originalSession);
+		expect(runtimeHost.session.sessionFile).toBe(originalSessionFile);
+		const detachedManager = SessionManager.open(result.sessionFile!);
+		expect(
+			detachedManager
+				.getEntries()
+				.filter((entry) => entry.type === "message")
+				.map((entry) => entry.message.role),
+		).toEqual(["user", "assistant"]);
+		rmSync(result.sessionFile!, { force: true });
 	});
 });
