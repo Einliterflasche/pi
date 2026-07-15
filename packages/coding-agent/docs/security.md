@@ -39,7 +39,7 @@ Pi requires a project-trust decision when it finds any of these resources from t
 - `.pi/settings.json`
 - `.pi/extensions`, `.pi/skills`, `.pi/prompts`, or `.pi/themes`
 - `.pi/SYSTEM.md` or `.pi/APPEND_SYSTEM.md`
-- project `.agents/skills` in the current directory or an ancestor directory
+- project `.claude/skills` or `.agents/skills` in the current directory or a project ancestor directory
 
 A bare `.pi` directory does not require project trust.
 

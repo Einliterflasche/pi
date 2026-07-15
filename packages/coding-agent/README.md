@@ -43,6 +43,8 @@ For a built-in AI provider, run `/login` inside Pi to connect a subscription or 
 
 See the [documentation](docs/index.md) for full setup and usage instructions.
 
+Pi discovers project skills in `.pi/skills/`, `.claude/skills/`, and `.agents/skills/` after you trust the project. See [Skills](docs/skills.md) for discovery boundaries and global locations.
+
 ## Development
 
 Clone the repository, install its dependencies, and run Pi from source:
