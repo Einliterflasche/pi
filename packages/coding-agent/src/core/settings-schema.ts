@@ -277,21 +277,6 @@ export const SettingsSchema = Type.Object(
 				default: SETTINGS_DEFAULTS.collapseChangelog,
 			}),
 		),
-		enableInstallTelemetry: Type.Optional(
-			Type.Boolean({
-				description: "Send an anonymous version and update ping after changelog-detected updates.",
-				default: SETTINGS_DEFAULTS.enableInstallTelemetry,
-			}),
-		),
-		enableAnalytics: Type.Optional(
-			Type.Boolean({
-				description: "Opt in to analytics data sharing.",
-				default: SETTINGS_DEFAULTS.enableAnalytics,
-			}),
-		),
-		trackingId: Type.Optional(
-			Type.String({ description: "Analytics tracking identifier, generated when analytics is enabled." }),
-		),
 		packages: Type.Optional(
 			Type.Array(PackageSourceSchema, {
 				description: "npm or git package sources, as strings or objects with resource filtering.",
