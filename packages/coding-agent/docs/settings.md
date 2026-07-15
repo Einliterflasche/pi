@@ -2,6 +2,8 @@
 
 This reference lists user-configurable settings, their types, defaults, and purposes. Project settings override agent-directory settings. Resource lists are combined. See [Configuration](configuration.md) for file locations and trust behavior.
 
+Project trust also controls automatic discovery of project `.claude/skills/` and `.agents/skills/` directories. See [Skills](skills.md) for discovery rules.
+
 ## Model and thinking
 
 <a id="model-cycling"></a>
