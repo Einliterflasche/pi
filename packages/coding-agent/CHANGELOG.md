@@ -31,6 +31,10 @@
 - Added GPT-6 Astra for OpenAI API keys and OpenAI Codex subscriptions.
 - Added five-times-faster mouse wheel scrolling while holding Alt in fullscreen mode ([#9166](https://github.com/earendil-works/pi/pull/9166) by [@xl0](https://github.com/xl0)).
 
+### Breaking Changes
+
+- Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
+
 ### Added
 
 - Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
