@@ -58,7 +58,15 @@ Set `disable-model-invocation: true` in frontmatter when a skill should be avail
 
 Place the skill in your user or project skills directory. Directories containing `SKILL.md` are discovered recursively.
 
-Pi also supports the Agent Skills locations `~/.agents/skills/` and `.agents/skills/`. Project `.agents/skills/` directories are discovered from the working directory through its ancestors, stopping at the repository root when one exists.
+Pi loads global skills from `~/.pi/agent/skills/` and `~/.agents/skills/`. It loads project skills from `.pi/skills/` after you trust the project.
+
+Pi also discovers project `.claude/skills/` and `.agents/skills/` directories from the working directory through its ancestors after you trust the project. Discovery stops at the repository root, or the filesystem root outside a repository.
+
+In `~/.pi/agent/skills/` and `.pi/skills/`, direct Markdown files can declare skills with a non-empty frontmatter description. In `~/.agents/skills/`, project `.claude/skills/`, and project `.agents/skills/`, root Markdown files are ignored. Nested Markdown files in grouping folders can declare skills with frontmatter.
+
+Project Claude Code skills load automatically after trust. To load global Claude Code or Codex skills, add `~/.claude/skills` or `~/.codex/skills` to the `skills` array in your settings.
+
+Use `--no-skills` to disable discovery. Explicit `--skill` paths still load.
 
 Pi accepts some standalone Markdown skills, but a directory containing `SKILL.md` is the portable form and should be preferred. See [Settings](settings.md#resources) and [Pi Packages](packages.md) for additional locations.
 
