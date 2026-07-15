@@ -28,6 +28,7 @@ Pi loads skills from:
   - `~/.agents/skills/`
 - Project (only after the project is trusted):
   - `.pi/skills/`
+  - `.claude/skills/` in `cwd` and ancestor directories (up to git repo root, or filesystem root when not in a repo)
   - `.agents/skills/` in `cwd` and ancestor directories (up to git repo root, or filesystem root when not in a repo)
 - Packages: `skills/` directories or `pi.skills` entries in `package.json`
 - Settings: `skills` array with files or directories
@@ -36,7 +37,7 @@ Pi loads skills from:
 Discovery rules:
 - In `~/.pi/agent/skills/` and `.pi/skills/`, direct root `.md` files are discovered as individual skills when they have valid skill frontmatter with a non-empty `description`
 - In all skill locations, directories containing `SKILL.md` are discovered recursively
-- In `~/.agents/skills/` and project `.agents/skills/`, root `.md` files are ignored, but nested `.md` files in grouping folders are discovered when they declare skill frontmatter
+- In `~/.agents/skills/`, project `.claude/skills/`, and project `.agents/skills/`, root `.md` files are ignored, but nested `.md` files in grouping folders are discovered when they declare skill frontmatter
 - Root Markdown files other than `SKILL.md` that do not look like skills are ignored silently
 
 Disable discovery with `--no-skills` (explicit `--skill` paths still load).
@@ -54,13 +55,7 @@ To use skills from Claude Code or OpenAI Codex, add their directories to setting
 }
 ```
 
-For project-level Claude Code skills, add to `.pi/settings.json`:
-
-```json
-{
-  "skills": ["../.claude/skills"]
-}
-```
+Project-level Claude Code skills under `.claude/skills/` are discovered automatically after the project is trusted.
 
 ## How Skills Work
 

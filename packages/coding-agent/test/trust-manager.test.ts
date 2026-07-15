@@ -42,6 +42,7 @@ describe("ProjectTrustStore", () => {
 		try {
 			mkdirSync(join(tempDir, ".pi", "agent"), { recursive: true });
 			mkdirSync(join(tempDir, ".agents", "skills"), { recursive: true });
+			mkdirSync(join(tempDir, ".claude", "skills"), { recursive: true });
 			expect(hasTrustRequiringProjectResources(tempDir)).toBe(false);
 			expect(hasTrustRequiringProjectResources(cwd)).toBe(false);
 
@@ -54,6 +55,10 @@ describe("ProjectTrustStore", () => {
 			expect(hasTrustRequiringProjectResources(cwd)).toBe(true);
 
 			rmSync(join(cwd, ".pi"), { recursive: true, force: true });
+			mkdirSync(join(cwd, ".claude", "skills"), { recursive: true });
+			expect(hasTrustRequiringProjectResources(cwd)).toBe(true);
+
+			rmSync(join(cwd, ".claude"), { recursive: true, force: true });
 			mkdirSync(join(cwd, ".agents", "skills"), { recursive: true });
 			expect(hasTrustRequiringProjectResources(cwd)).toBe(true);
 		} finally {
@@ -63,5 +68,18 @@ describe("ProjectTrustStore", () => {
 				process.env.HOME = originalHome;
 			}
 		}
+	});
+
+	it("stops harness skill trust discovery at the git repository root", () => {
+		const repoRoot = join(tempDir, "repo");
+		const nestedCwd = join(repoRoot, "packages", "feature");
+		mkdirSync(join(repoRoot, ".git"), { recursive: true });
+		mkdirSync(nestedCwd, { recursive: true });
+		mkdirSync(join(tempDir, ".claude", "skills"), { recursive: true });
+
+		expect(hasTrustRequiringProjectResources(nestedCwd)).toBe(false);
+
+		mkdirSync(join(repoRoot, ".claude", "skills"), { recursive: true });
+		expect(hasTrustRequiringProjectResources(nestedCwd)).toBe(true);
 	});
 });
