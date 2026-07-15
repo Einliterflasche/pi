@@ -34,6 +34,7 @@ import { type GitSource, parseGitUrl } from "../utils/git.ts";
 import { canonicalizePath, isLocalPath, markPathIgnoredByCloudSync, resolvePath } from "../utils/paths.ts";
 import { isStdoutTakenOver } from "./output-guard.ts";
 import type { PackageSource, SettingsManager } from "./settings-manager.ts";
+import { collectAncestorSkillDirs } from "./skill-discovery-paths.ts";
 
 const NETWORK_TIMEOUT_MS = 10000;
 const UPDATE_CHECK_CONCURRENCY = 4;
@@ -344,7 +345,7 @@ function collectFiles(
 	return files;
 }
 
-type SkillDiscoveryMode = "pi" | "agents";
+type SkillDiscoveryMode = "pi" | "standard";
 
 function collectSkillEntries(
 	dir: string,
@@ -422,41 +423,6 @@ function collectSkillEntries(
 
 function collectAutoSkillEntries(dir: string, mode: SkillDiscoveryMode): string[] {
 	return collectSkillEntries(dir, mode);
-}
-
-function findGitRepoRoot(startDir: string): string | null {
-	let dir = resolve(startDir);
-	while (true) {
-		if (existsSync(join(dir, ".git"))) {
-			return dir;
-		}
-		const parent = dirname(dir);
-		if (parent === dir) {
-			return null;
-		}
-		dir = parent;
-	}
-}
-
-function collectAncestorAgentsSkillDirs(startDir: string): string[] {
-	const skillDirs: string[] = [];
-	const resolvedStartDir = resolve(startDir);
-	const gitRepoRoot = findGitRepoRoot(resolvedStartDir);
-
-	let dir = resolvedStartDir;
-	while (true) {
-		skillDirs.push(join(dir, ".agents", "skills"));
-		if (gitRepoRoot && dir === gitRepoRoot) {
-			break;
-		}
-		const parent = dirname(dir);
-		if (parent === dir) {
-			break;
-		}
-		dir = parent;
-	}
-
-	return skillDirs;
 }
 
 function collectAutoPromptEntries(dir: string): string[] {
@@ -2346,9 +2312,13 @@ export class DefaultPackageManager implements PackageManager {
 			themes: join(projectBaseDir, "themes"),
 		};
 		const userAgentsSkillsDir = join(getHomeDir(), ".agents", "skills");
+		const userClaudeSkillsDir = join(getHomeDir(), ".claude", "skills");
 		const projectTrusted = this.settingsManager.isProjectTrusted();
 		const projectAgentsSkillDirs = projectTrusted
-			? collectAncestorAgentsSkillDirs(this.cwd).filter((dir) => resolve(dir) !== resolve(userAgentsSkillsDir))
+			? collectAncestorSkillDirs(this.cwd, ".agents").filter((dir) => resolve(dir) !== resolve(userAgentsSkillsDir))
+			: [];
+		const projectClaudeSkillDirs = projectTrusted
+			? collectAncestorSkillDirs(this.cwd, ".claude").filter((dir) => resolve(dir) !== resolve(userClaudeSkillsDir))
 			: [];
 
 		const addResources = (
@@ -2385,6 +2355,22 @@ export class DefaultPackageManager implements PackageManager {
 			);
 		}
 
+		// Project skills from .claude/ (each with its own baseDir)
+		for (const claudeSkillsDir of projectClaudeSkillDirs) {
+			const claudeBaseDir = dirname(claudeSkillsDir); // the .claude directory
+			const claudeMetadata: PathMetadata = {
+				...projectMetadata,
+				baseDir: claudeBaseDir,
+			};
+			addResources(
+				"skills",
+				collectAutoSkillEntries(claudeSkillsDir, "standard"),
+				claudeMetadata,
+				projectOverrides.skills,
+				claudeBaseDir,
+			);
+		}
+
 		// Project skills from .agents/ (each with its own baseDir)
 		for (const agentsSkillsDir of projectAgentsSkillDirs) {
 			const agentsBaseDir = dirname(agentsSkillsDir); // the .agents directory
@@ -2394,7 +2380,7 @@ export class DefaultPackageManager implements PackageManager {
 			};
 			addResources(
 				"skills",
-				collectAutoSkillEntries(agentsSkillsDir, "agents"),
+				collectAutoSkillEntries(agentsSkillsDir, "standard"),
 				agentsMetadata,
 				projectOverrides.skills,
 				agentsBaseDir,
@@ -2444,7 +2430,7 @@ export class DefaultPackageManager implements PackageManager {
 		};
 		addResources(
 			"skills",
-			collectAutoSkillEntries(userAgentsSkillsDir, "agents"),
+			collectAutoSkillEntries(userAgentsSkillsDir, "standard"),
 			userAgentsMetadata,
 			userOverrides.skills,
 			userAgentsBaseDir,

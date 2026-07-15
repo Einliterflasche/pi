@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import lockfile from "proper-lockfile";
 import { CONFIG_DIR_NAME } from "../config.ts";
 import { canonicalizePath, resolvePath } from "../utils/paths.ts";
+import { collectAncestorSkillDirs } from "./skill-discovery-paths.ts";
 
 export type ProjectTrustDecision = boolean | null;
 
@@ -176,33 +177,31 @@ function withTrustFileLock<T>(path: string, fn: () => T): T {
 
 /**
  * Returns true when cwd has project-local resources that must be gated by
- * project trust: trust-requiring entries under cwd/.pi, or .agents/skills in
- * cwd or one of its ancestors. Returns false when no such project resources
- * exist. The user/global ~/.agents/skills directory is always treated as a
- * trusted user resource and is ignored here, even when cwd is $HOME.
+ * project trust: trust-requiring entries under cwd/.pi, or .claude/skills and
+ * .agents/skills in cwd or one of its project ancestors. Returns false when no
+ * such project resources exist. User/global skill directories under the home
+ * directory are trusted user resources and are ignored here, even when cwd is
+ * $HOME.
  */
 export function hasTrustRequiringProjectResources(cwd: string): boolean {
 	const homeDir = canonicalizePath(resolvePath(process.env.HOME || homedir()));
-	const userAgentsSkillsDir = join(homeDir, ".agents", "skills");
-	let currentDir = canonicalizePath(resolvePath(cwd));
+	const currentDir = canonicalizePath(resolvePath(cwd));
 
 	const configDir = join(currentDir, CONFIG_DIR_NAME);
 	if (TRUST_REQUIRING_PROJECT_CONFIG_RESOURCES.some((entry) => existsSync(join(configDir, entry)))) {
 		return true;
 	}
 
-	while (true) {
-		const agentsSkillsDir = join(currentDir, ".agents", "skills");
-		if (agentsSkillsDir !== userAgentsSkillsDir && existsSync(agentsSkillsDir)) {
-			return true;
+	for (const configDirName of [".claude", ".agents"]) {
+		const userSkillsDir = canonicalizePath(join(homeDir, configDirName, "skills"));
+		for (const skillsDir of collectAncestorSkillDirs(currentDir, configDirName)) {
+			if (canonicalizePath(skillsDir) !== userSkillsDir && existsSync(skillsDir)) {
+				return true;
+			}
 		}
-
-		const parentDir = dirname(currentDir);
-		if (parentDir === currentDir) {
-			return false;
-		}
-		currentDir = parentDir;
 	}
+
+	return false;
 }
 
 export class ProjectTrustStore {
