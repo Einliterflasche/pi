@@ -47,6 +47,10 @@ Pi discovers project skills in `.pi/skills/`, `.claude/skills/`, and `.agents/sk
 
 Inside Zellij, `/fork` opens a new pane in the same tab when the `zellij` binary is available. The original pane keeps its session. See [Sessions](docs/sessions.md) for details.
 
+This fork does not send install/update telemetry, collect usage analytics, or add automatic provider attribution headers. It still requests `https://pi.dev/api/latest-version` for version updates.
+
+Set `PI_SKIP_VERSION_CHECK=1` to disable version update requests. Use `--offline` or `PI_OFFLINE=1` to disable startup network operations, including package update requests.
+
 ## Development
 
 Clone the repository, install its dependencies, and run Pi from source:

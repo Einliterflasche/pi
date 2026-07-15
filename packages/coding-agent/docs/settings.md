@@ -142,11 +142,13 @@ Resource paths in user settings resolve from the agent directory. Paths in proje
 
 Resource arrays support glob exclusions with `!pattern`, exact inclusion with `+path`, and exact exclusion with `-path`. Pi loads resources listed in both user-level and project settings.
 
-## Updates, telemetry, and warnings
+## Updates and warnings
+
+This fork does not send install/update telemetry, collect usage analytics, or add automatic provider attribution headers. It still requests `https://pi.dev/api/latest-version` for version updates.
+
+Set `PI_SKIP_VERSION_CHECK=1` to disable version update requests. Use `--offline` or `PI_OFFLINE=1` to disable startup network operations, including package update requests.
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
 | `collapseChangelog` | boolean | `false` | Show a condensed changelog after an update. |
-| `enableInstallTelemetry` | boolean | `true` | Enable anonymous install/update reporting and selected provider attribution headers. Does not control update checks. |
-| `enableAnalytics` | boolean | `false` | Opt in to analytics data sharing. Currently used only by the experimental first-run setup. |
 | `warnings.anthropicExtraUsage` | boolean | `true` | Warn when Anthropic subscription authentication may use paid extra usage. |
