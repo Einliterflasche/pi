@@ -11,7 +11,7 @@ import type { ExtensionRunner, LoadExtensionsResult, SessionStartEvent, ToolDefi
 import { convertToLlm } from "./messages.ts";
 import { ModelRegistry } from "./model-registry.ts";
 import { findInitialModel } from "./model-resolver.ts";
-import { mergeProviderAttributionHeaders } from "./provider-attribution.ts";
+import { mergeProviderHeaders } from "./provider-headers.ts";
 import type { ResourceLoader } from "./resource-loader.ts";
 import { DefaultResourceLoader } from "./resource-loader.ts";
 import { getDefaultSessionDir, SessionManager } from "./session-manager.ts";
@@ -313,13 +313,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 			const timeoutMs = options?.timeoutMs ?? providerRetrySettings.timeoutMs ?? effectiveTimeoutMs;
 			const websocketConnectTimeoutMs =
 				options?.websocketConnectTimeoutMs ?? settingsManager.getWebSocketConnectTimeoutMs();
-			let headers = mergeProviderAttributionHeaders(
-				model,
-				settingsManager,
-				options?.sessionId,
-				auth.headers,
-				options?.headers,
-			);
+			let headers = mergeProviderHeaders(model, options?.sessionId, auth.headers, options?.headers);
 			// Let extensions inject/adjust per-request headers (e.g. tracing, session correlation)
 			// after static assembly, before the provider HTTP call.
 			const headerRunner = extensionRunnerRef.current;

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
+
 ### Added
 
 - Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
