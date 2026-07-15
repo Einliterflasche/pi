@@ -57,6 +57,10 @@ See the checked [sessions example](../examples/sdk/11-sessions.ts) for creating,
 
 `AgentSessionRuntime` adds `newSession()`, `switchSession()`, `fork()`, and `importFromJsonl()`. Each operation replaces the active `AgentSession` and recreates services for the target working directory.
 
+`runtime.forkDetached("entry-id")` creates a persisted fork without replacing the active runtime.
+
+`sessionManager.createBranchedSession(leafId)` writes a branch and switches the manager to it. `sessionManager.createDetachedBranchedSession(leafId)` writes a persisted branch without changing the manager. Pass `null` to the detached method for an empty child session.
+
 After a runtime replacement, subscriptions belong to the old `AgentSession` and must be rebound. See the [session runtime example](../examples/sdk/13-session-runtime.ts).
 
 ## Prompting
@@ -104,6 +108,8 @@ Each boundary can be supplied explicitly:
 - `sessionManager` supplies persistent or in-memory conversation history.
 - `resourceLoader` supplies extensions, skills, prompt templates, themes, and context files.
 - `tools`, `noTools`, `excludeTools`, and `customTools` control the active tool set.
+
+Default project skill discovery includes `.pi/skills/`, `.claude/skills/`, and `.agents/skills/` after project trust. The latter two traverse ancestors to the repository root, or filesystem root outside a repository.
 
 Use `DefaultResourceLoader` when you want standard discovery with selected overrides. Supply a custom `ResourceLoader` when the host owns resource storage and discovery completely.
 
