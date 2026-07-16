@@ -26,6 +26,8 @@ The startup header lists the instructions and resources Pi loaded. The editor bo
 
 Pi does not ask before every tool call. Review commands and changed files, and use a sandbox for untrusted or unattended work. See [Security](security.md).
 
+This fork includes permission modes and the bundled subagent extension. Use `--permission-mode` with `manual`, `read-only`, `auto-read-only`, `auto`, or `skip`. See [Tool permissions](permissions.md) for approval behavior.
+
 ## Change direction
 
 You can send more input while Pi is working:

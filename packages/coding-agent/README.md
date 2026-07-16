@@ -20,6 +20,10 @@ Pi ships with powerful defaults but skips features like sub-agents and plan mode
 
 Use Pi [interactively](docs/usage.md), automate it in [print or JSON mode](docs/cli.md), control it over [RPC](docs/rpc.md), or build apps with the [Pi TypeScript SDK](docs/sdk.md). See [OpenClaw](https://github.com/OpenClaw/OpenClaw) for a real-world integration.
 
+This fork ships permission modes and a bundled subagent extension with isolated contexts and inherited model, thinking level, and permissions. Disable the subagent tool with `--exclude-tools subagent`, or disable extension discovery with `--no-extensions`.
+
+Use `--permission-mode` with `manual`, `read-only`, `auto-read-only`, `auto`, or `skip`. See [Tool permissions](docs/permissions.md).
+
 ## Getting started
 
 Install the command-line interface:
