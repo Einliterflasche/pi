@@ -109,6 +109,7 @@ import {
 	type PermissionMode,
 	type PermissionRequest,
 	parseClassifierResult,
+	READ_ONLY_BUILTIN_TOOLS,
 } from "./permissions.ts";
 import { expandPromptTemplate, type PromptTemplate } from "./prompt-templates.ts";
 import type { ResourceExtensionPaths, ResourceLoader } from "./resource-loader.ts";
@@ -324,6 +325,14 @@ function estimateMessagesTokens(messages: AgentMessage[]): number {
 // Constants
 // ============================================================================
 
+const READ_ONLY_PERMISSION_PROMPT = `## Read-only permission mode
+
+Use only the verified built-in read, grep, find, and ls tools. Accomplish as much of the user's goal as possible without modifying files, running commands, or causing side effects. Do not propose or retry unavailable tools. If the goal cannot be completed with read-only access, report exactly what could not be done and ask the user to switch to a broader permission mode.`;
+
+const AUTO_READ_ONLY_PERMISSION_PROMPT = `## Automatic read-only permission mode
+
+Use only tool calls that are clearly and verifiably non-altering. Do not propose operations that modify files or repositories, execute state-changing commands, change configuration, install packages, write data, or cause local or remote side effects. Ambiguous operations will be denied. If the goal cannot be completed with verifiably read-only operations, report exactly what could not be done and ask the user to switch to a broader permission mode.`;
+
 // ============================================================================
 // AgentSession Class
 // ============================================================================
@@ -392,6 +401,7 @@ export class AgentSession {
 	// Tool permissions
 	private _permissionController?: PermissionController;
 	private _permissionUserMessages: string[] = [];
+	private _activeToolNamesBeforeReadOnly: string[] | undefined;
 
 	private _modelRuntime: ModelRuntime;
 
@@ -447,11 +457,12 @@ export class AgentSession {
 		mode: PermissionMode = "manual",
 	): void {
 		this._permissionController = new PermissionController({
-			mode,
+			mode: "manual",
 			classify: async (request, signal) => await this._classifyToolPermission(request, signal),
 			requestApproval,
 		});
 		this._permissionUserMessages = this._collectUserMessagesForPermissions();
+		this.setPermissionMode(mode);
 	}
 
 	get permissionMode(): PermissionMode {
@@ -459,7 +470,24 @@ export class AgentSession {
 	}
 
 	setPermissionMode(mode: PermissionMode): void {
-		this._permissionController?.setMode(mode);
+		if (!this._permissionController) return;
+
+		const previousMode = this._permissionController.getMode();
+		this._permissionController.setMode(mode);
+		if (mode === "read-only" && previousMode !== "read-only") {
+			this._activeToolNamesBeforeReadOnly = this.getActiveToolNames();
+			this.setActiveToolsByName(
+				Array.from(READ_ONLY_BUILTIN_TOOLS).filter(
+					(name) => this._toolDefinitions.get(name)?.sourceInfo.source === "builtin",
+				),
+			);
+		} else if (mode !== "read-only" && previousMode === "read-only") {
+			const toolNames = this._activeToolNamesBeforeReadOnly ?? [];
+			this._activeToolNamesBeforeReadOnly = undefined;
+			this.setActiveToolsByName(toolNames);
+		} else {
+			this.agent.state.systemPrompt = this._getEffectiveSystemPrompt();
+		}
 	}
 
 	private _collectUserMessagesForPermissions(): string[] {
@@ -491,6 +519,8 @@ Return exactly one JSON object with no markdown and no extra fields:
 
 Approve ordinary, expected work inside a version-controlled project more readily. Be strict about system changes, privilege escalation, credentials, deployments, publishing, operating-system or package-manager updates, destructive Git operations, deleting data, irreversible actions, remote side effects, and any scope broader than the user reasonably requested. Deny ambiguous access.
 
+${this.permissionMode === "auto-read-only" ? "This session is in automatic read-only mode. Approve only when the complete tool call is verifiably non-altering and free of local or remote side effects. Reject writes, edits, state-changing shell commands, configuration changes, package operations, network mutations, and any ambiguous call. A command that mixes read-only and potentially altering operations must be rejected." : ""}
+
 Proposed tool call:
 ${JSON.stringify({
 	cwd: request.cwd,
@@ -519,6 +549,13 @@ ${JSON.stringify({
 			.join("")
 			.trim();
 		return parseClassifierResult(text);
+	}
+
+	private _getEffectiveSystemPrompt(): string {
+		const prompt = this._systemPromptOverride ?? this._baseSystemPrompt;
+		if (this.permissionMode === "read-only") return `${prompt}\n\n${READ_ONLY_PERMISSION_PROMPT}`;
+		if (this.permissionMode === "auto-read-only") return `${prompt}\n\n${AUTO_READ_ONLY_PERMISSION_PROMPT}`;
+		return prompt;
 	}
 
 	private async _getRequiredRequestAuth(model: Model<any>): Promise<{
@@ -616,7 +653,7 @@ ${JSON.stringify({
 					args,
 					userMessages: [...this._permissionUserMessages],
 					cwd: this._cwd,
-					exempt: this._toolDefinitions.get(toolCall.name)?.sourceInfo.source === "builtin",
+					builtin: this._toolDefinitions.get(toolCall.name)?.sourceInfo.source === "builtin",
 				},
 				signal,
 			);
@@ -691,7 +728,7 @@ ${JSON.stringify({
 				...previousSnapshot,
 				context: {
 					...nextContext,
-					systemPrompt: this._systemPromptOverride ?? this._baseSystemPrompt,
+					systemPrompt: this._getEffectiveSystemPrompt(),
 					tools: this.agent.state.tools.slice(),
 				},
 				model: this.agent.state.model,
@@ -1099,7 +1136,7 @@ ${JSON.stringify({
 
 		// Rebuild base system prompt with new tool set
 		this._baseSystemPrompt = this._rebuildSystemPrompt(validToolNames);
-		this.agent.state.systemPrompt = this._systemPromptOverride ?? this._baseSystemPrompt;
+		this.agent.state.systemPrompt = this._getEffectiveSystemPrompt();
 	}
 
 	/** Whether compaction or branch summarization is currently running */
@@ -1420,11 +1457,11 @@ ${JSON.stringify({
 			// Apply extension-modified system prompt, or reset to base
 			if (result?.systemPrompt !== undefined) {
 				this._systemPromptOverride = result.systemPrompt;
-				this.agent.state.systemPrompt = result.systemPrompt;
+				this.agent.state.systemPrompt = this._getEffectiveSystemPrompt();
 			} else {
 				// Ensure we're using the base prompt (in case previous turn had modifications)
 				this._systemPromptOverride = undefined;
-				this.agent.state.systemPrompt = this._baseSystemPrompt;
+				this.agent.state.systemPrompt = this._getEffectiveSystemPrompt();
 			}
 		} catch (error) {
 			preflightResult?.(false);
@@ -2604,7 +2641,7 @@ ${JSON.stringify({
 
 		this._resourceLoader.extendResources(extensionPaths);
 		this._baseSystemPrompt = this._rebuildSystemPrompt(this.getActiveToolNames());
-		this.agent.state.systemPrompt = this._baseSystemPrompt;
+		this.agent.state.systemPrompt = this._getEffectiveSystemPrompt();
 	}
 
 	private buildExtensionResourcePaths(entries: Array<{ path: string; extensionPath: string }>): Array<{

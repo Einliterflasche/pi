@@ -1,4 +1,4 @@
-export type PermissionMode = "manual" | "skip" | "auto";
+export type PermissionMode = "manual" | "read-only" | "auto-read-only" | "skip" | "auto";
 
 export type ClassifierResult = { approved: true } | { approved: false; reason: string };
 
@@ -7,8 +7,8 @@ export interface PermissionRequest {
 	args: unknown;
 	userMessages: string[];
 	cwd: string;
-	/** Defaults to true for the built-in read and grep tools. */
-	exempt?: boolean;
+	/** Whether this tool definition is the verified built-in implementation. */
+	builtin?: boolean;
 }
 
 export interface PermissionDecision {
@@ -24,7 +24,9 @@ export interface PermissionControllerOptions {
 	retryDelay?: (attempt: number, signal?: AbortSignal) => Promise<void>;
 }
 
-const EXEMPT_TOOLS = new Set(["read", "grep"]);
+const MANUAL_EXEMPT_TOOLS = new Set(["read", "grep"]);
+const ALTERING_TOOLS = new Set(["edit", "write"]);
+export const READ_ONLY_BUILTIN_TOOLS: ReadonlySet<string> = new Set(["read", "grep", "find", "ls"]);
 const MAX_CLASSIFIER_RETRIES = 3;
 const MAX_CONSECUTIVE_REJECTIONS = 5;
 
@@ -111,7 +113,29 @@ export class PermissionController {
 	}
 
 	async evaluate(request: PermissionRequest, signal?: AbortSignal): Promise<PermissionDecision> {
-		if ((EXEMPT_TOOLS.has(request.toolName) && request.exempt !== false) || this.mode === "skip") {
+		if (this.mode === "skip") {
+			return { approved: true };
+		}
+
+		if (this.mode === "read-only") {
+			if (request.builtin === true && READ_ONLY_BUILTIN_TOOLS.has(request.toolName)) {
+				return { approved: true };
+			}
+			return {
+				approved: false,
+				reason:
+					"Read-only mode permits only the verified built-in read, grep, find, and ls tools. Do not retry this tool call. Accomplish the task using only those tools. If that is impossible, explain what could not be completed and ask the user to switch to a broader permission mode.",
+			};
+		}
+
+		if (this.mode === "auto-read-only" && ALTERING_TOOLS.has(request.toolName)) {
+			return {
+				approved: false,
+				reason: `The ${request.toolName} tool is inherently altering and cannot run in automatic read-only mode. Use read-only operations instead, or explain the limitation and ask the user to switch to a broader permission mode.`,
+			};
+		}
+
+		if (request.builtin === true && MANUAL_EXEMPT_TOOLS.has(request.toolName)) {
 			return { approved: true };
 		}
 
@@ -157,6 +181,12 @@ export class PermissionController {
 		}
 
 		const failure = lastError instanceof Error ? lastError.message : String(lastError);
+		if (this.mode === "auto-read-only") {
+			return {
+				approved: false,
+				reason: `Read-only permission classifier failed after four attempts, so the tool call could not be verified as non-altering: ${failure}`,
+			};
+		}
 		return await this.askUser(request, `Permission classifier failed after four attempts: ${failure}`, signal);
 	}
 

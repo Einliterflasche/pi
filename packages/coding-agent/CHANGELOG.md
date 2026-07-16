@@ -10,6 +10,7 @@
 
 - Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
 - Added Zellij-aware `/fork`, opening persisted forks in a new pane in the same tab while keeping the original session active.
+- Added strict and classifier-backed read-only permission modes with distinct mode indicators.
 
 ### Fixed
 
