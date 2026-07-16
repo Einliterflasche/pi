@@ -16,6 +16,10 @@ Pi is a minimal, extensible AI agent for the terminal. Adapt Pi to your workflow
 
 Ask Pi to create the prompt templates, skills, extensions, and themes you need, or install a Pi package. Use Pi directly, automate it in print, JSON, or RPC mode, or build applications with the TypeScript SDK.
 
+This fork ships permission modes and a bundled subagent extension with isolated contexts and inherited model, thinking level, and permissions. Disable the subagent tool with `--exclude-tools subagent`, or disable extension discovery with `--no-extensions`.
+
+Use `--permission-mode` with `manual`, `read-only`, `auto-read-only`, `auto`, or `skip`. See [Tool permissions](docs/permissions.md).
+
 ## Getting started
 
 Install the command-line interface with npm:

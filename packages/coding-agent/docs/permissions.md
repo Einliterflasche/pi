@@ -10,7 +10,7 @@ Interactive mode starts in `manual` permission mode. Press `Shift+Tab` or use `/
 | Auto | yellow `⏵⏵` | Non-exempt calls are reviewed by the active model before execution. |
 | Skip | red `⏵⏵` | Every tool call runs without approval. |
 
-Permission mode is runtime-only and resets to `manual` when pi starts.
+Permission mode is runtime-only and resets to `manual` when pi starts unless `--permission-mode <mode>` is provided. Non-interactive child agents use this option to inherit their parent's mode.
 
 ## Read-only operation
 
