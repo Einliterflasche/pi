@@ -322,6 +322,8 @@ export interface InteractiveModeOptions {
 	verbose?: boolean;
 	/** Initial editor content supplied by a detached fork handoff. */
 	initialEditorText?: string;
+	/** Initial tool permission mode. Defaults to manual. */
+	permissionMode?: PermissionMode;
 	/** CLI arguments to preserve when launching a detached fork. Undefined disables relaunching. */
 	forkRelaunchArgs?: string[];
 }
@@ -455,6 +457,7 @@ export class InteractiveMode {
 	constructor(runtimeHost: AgentSessionRuntime, options: InteractiveModeOptions = {}) {
 		this.runtimeHost = runtimeHost;
 		this.options = options;
+		this.permissionMode = options.permissionMode ?? "manual";
 		this.autoTrustOnReloadCwd = options.autoTrustOnReloadCwd;
 		this.runtimeHost.setBeforeSessionInvalidate(() => {
 			this.resetExtensionUI();
@@ -1792,6 +1795,7 @@ export class InteractiveMode {
 			modelRegistry: extensionRunner.getModelRegistry(),
 			model: this.session.model,
 			thinkingLevel: this.session.thinkingLevel,
+			permissionMode: this.session.permissionMode,
 			isIdle: () => this.session.isIdle,
 			isProjectTrusted: () => this.settingsManager.isProjectTrusted(),
 			signal: this.session.agent.signal,

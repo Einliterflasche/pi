@@ -57,6 +57,8 @@ describe("Zellij fork helpers", () => {
 			"old name",
 			"--model",
 			"anthropic/opus",
+			"--permission-mode",
+			"auto-read-only",
 			"--extension",
 			"./extension.ts",
 			"--no-skills",
@@ -72,6 +74,8 @@ describe("Zellij fork helpers", () => {
 		).toEqual([
 			"--model",
 			"anthropic/opus",
+			"--permission-mode",
+			"auto-read-only",
 			"--extension",
 			"/repo/extension.ts",
 			"--no-skills",

@@ -54,6 +54,7 @@ import type { ReadonlyFooterDataProvider } from "../footer-data-provider.ts";
 import type { KeybindingsManager } from "../keybindings.ts";
 import type { CustomMessage } from "../messages.ts";
 import type { ModelRegistry } from "../model-registry.ts";
+import type { PermissionMode } from "../permissions.ts";
 import type {
 	BranchSummaryEntry,
 	CompactionEntry,
@@ -320,6 +321,8 @@ export interface ExtensionContext {
 	model: Model<any> | undefined;
 	/** Current thinking level, when provided by the session runtime. */
 	thinkingLevel?: ThinkingLevel;
+	/** Current tool permission mode. */
+	permissionMode: PermissionMode;
 	/** Whether the agent is idle (not streaming) */
 	isIdle(): boolean;
 	/** Whether project-local trust is active for this context. */
@@ -1615,6 +1618,7 @@ export interface ExtensionActions {
  */
 export interface ExtensionContextActions {
 	getModel: () => Model<any> | undefined;
+	getPermissionMode?: () => PermissionMode;
 	isIdle: () => boolean;
 	isProjectTrusted: () => boolean;
 	getSignal: () => AbortSignal | undefined;

@@ -984,9 +984,9 @@ ctx.sessionManager.buildContextEntries()    // Active branch entries with compac
 ctx.sessionManager.getLeafId()              // Current leaf entry ID
 ```
 
-### ctx.modelRegistry / ctx.model / ctx.thinkingLevel
+### ctx.modelRegistry / ctx.model / ctx.thinkingLevel / ctx.permissionMode
 
-Access to models, providers, and resolved authentication. `ctx.modelRegistry.getProvider(id)` returns the effective pi-ai provider, while `getProviderAuth(id)` resolves its current API key, headers, base URL, and provider-scoped environment without requiring a loaded model. `ctx.model` is the active model, and `ctx.thinkingLevel` is its current effective thinking level.
+Access to models, providers, resolved authentication, and the current tool permission mode. `ctx.modelRegistry.getProvider(id)` returns the effective pi-ai provider, while `getProviderAuth(id)` resolves its current API key, headers, base URL, and provider-scoped environment without requiring a loaded model. `ctx.model` is the active model, and `ctx.thinkingLevel` is its current effective thinking level. `ctx.permissionMode` is one of `"manual"`, `"read-only"`, `"auto-read-only"`, `"auto"`, or `"skip"`; nested agents and external workers can use it to preserve the parent session's safety policy.
 
 ### ctx.signal
 
