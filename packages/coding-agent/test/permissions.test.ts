@@ -22,17 +22,21 @@ describe("parseClassifierResult", () => {
 });
 
 describe("PermissionController", () => {
-	it("always permits read and grep", async () => {
+	it("permits verified built-in read and grep without prompting", async () => {
 		const classify = vi.fn();
 		const requestApproval = vi.fn();
 		const controller = new PermissionController({ classify, requestApproval });
 
-		await expect(controller.evaluate({ ...request, toolName: "read" })).resolves.toEqual({ approved: true });
-		await expect(controller.evaluate({ ...request, toolName: "grep" })).resolves.toEqual({ approved: true });
+		await expect(controller.evaluate({ ...request, toolName: "read", builtin: true })).resolves.toEqual({
+			approved: true,
+		});
+		await expect(controller.evaluate({ ...request, toolName: "grep", builtin: true })).resolves.toEqual({
+			approved: true,
+		});
 		expect(classify).not.toHaveBeenCalled();
 		expect(requestApproval).not.toHaveBeenCalled();
 
-		await controller.evaluate({ ...request, toolName: "read", exempt: false });
+		await controller.evaluate({ ...request, toolName: "read", builtin: false });
 		expect(requestApproval).toHaveBeenCalledTimes(1);
 	});
 
@@ -46,6 +50,28 @@ describe("PermissionController", () => {
 			reason: "Tool execution denied by user",
 		});
 		expect(requestApproval).toHaveBeenCalledTimes(2);
+	});
+
+	it("permits only verified read-only built-ins in read-only mode without prompting", async () => {
+		const classify = vi.fn();
+		const requestApproval = vi.fn();
+		const controller = new PermissionController({ mode: "read-only", classify, requestApproval });
+
+		for (const toolName of ["read", "grep", "find", "ls"]) {
+			await expect(controller.evaluate({ ...request, toolName, builtin: true })).resolves.toEqual({
+				approved: true,
+			});
+		}
+
+		const overriddenRead = await controller.evaluate({ ...request, toolName: "read", builtin: false });
+		expect(overriddenRead.approved).toBe(false);
+		expect(overriddenRead.reason).toContain("verified built-in");
+
+		const bash = await controller.evaluate({ ...request, toolName: "bash", builtin: true });
+		expect(bash.approved).toBe(false);
+		expect(bash.reason).toContain("ask the user to switch");
+		expect(classify).not.toHaveBeenCalled();
+		expect(requestApproval).not.toHaveBeenCalled();
 	});
 
 	it("permits every tool in skip mode", async () => {
@@ -65,6 +91,46 @@ describe("PermissionController", () => {
 
 		await expect(controller.evaluate(request)).resolves.toEqual({ approved: true });
 		await expect(controller.evaluate(request)).resolves.toEqual({ approved: false, reason: "too broad" });
+	});
+
+	it("uses classifier decisions in automatic read-only mode", async () => {
+		const classify = vi
+			.fn()
+			.mockResolvedValueOnce({ approved: true })
+			.mockResolvedValueOnce({ approved: false, reason: "not verifiably read-only" });
+		const requestApproval = vi.fn();
+		const controller = new PermissionController({ mode: "auto-read-only", classify, requestApproval });
+
+		const write = await controller.evaluate({ ...request, toolName: "write", builtin: true });
+		expect(write.approved).toBe(false);
+		expect(write.reason).toContain("inherently altering");
+		expect(classify).not.toHaveBeenCalled();
+
+		await expect(controller.evaluate(request)).resolves.toEqual({ approved: true });
+		await expect(controller.evaluate(request)).resolves.toEqual({
+			approved: false,
+			reason: "not verifiably read-only",
+		});
+		expect(requestApproval).not.toHaveBeenCalled();
+	});
+
+	it("denies automatic read-only calls when classification fails", async () => {
+		const classify = vi.fn().mockRejectedValue(new Error("offline"));
+		const requestApproval = vi.fn();
+		const retryDelay = vi.fn().mockResolvedValue(undefined);
+		const controller = new PermissionController({
+			mode: "auto-read-only",
+			classify,
+			requestApproval,
+			retryDelay,
+		});
+
+		const decision = await controller.evaluate(request);
+		expect(decision.approved).toBe(false);
+		expect(decision.reason).toContain("could not be verified as non-altering");
+		expect(classify).toHaveBeenCalledTimes(4);
+		expect(retryDelay).toHaveBeenCalledTimes(3);
+		expect(requestApproval).not.toHaveBeenCalled();
 	});
 
 	it("retries classifier failures three times before manual fallback", async () => {
@@ -132,7 +198,7 @@ describe("PermissionController", () => {
 		});
 
 		await controller.evaluate(request);
-		await controller.evaluate({ ...request, toolName: "read" });
+		await controller.evaluate({ ...request, toolName: "read", builtin: true });
 		await controller.evaluate(request);
 		for (let index = 0; index < 4; index++) {
 			await controller.evaluate(request);
