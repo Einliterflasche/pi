@@ -30,6 +30,7 @@ import type {
 	AssistantMessage,
 	AuthResult,
 	ImageContent,
+	Message,
 	Model,
 	ProviderHeaders,
 	SystemMessage,
@@ -110,6 +111,7 @@ import {
 	type PermissionMode,
 	type PermissionRequest,
 	parseClassifierResult,
+	READ_ONLY_BUILTIN_TOOLS,
 } from "./permissions.ts";
 import { expandPromptTemplate, type PromptTemplate } from "./prompt-templates.ts";
 import type { ResourceExtensionPaths, ResourceLoader } from "./resource-loader.ts";
@@ -327,6 +329,17 @@ function estimateMessagesTokens(messages: AgentMessage[]): number {
 	return tokens;
 }
 
+// Constants
+// ============================================================================
+
+const READ_ONLY_PERMISSION_PROMPT = `## Read-only permission mode
+
+Use only the verified built-in read, grep, find, and ls tools. Accomplish as much of the user's goal as possible without modifying files, running commands, or causing side effects. Do not propose or retry unavailable tools. If the goal cannot be completed with read-only access, report exactly what could not be done and ask the user to switch to a broader permission mode.`;
+
+const AUTO_READ_ONLY_PERMISSION_PROMPT = `## Automatic read-only permission mode
+
+Use only tool calls that are clearly and verifiably non-altering. Do not propose operations that modify files or repositories, execute state-changing commands, change configuration, install packages, write data, or cause local or remote side effects. Ambiguous operations will be denied. If the goal cannot be completed with verifiably read-only operations, report exactly what could not be done and ask the user to switch to a broader permission mode.`;
+
 // ============================================================================
 // AgentSession Class
 // ============================================================================
@@ -395,6 +408,7 @@ export class AgentSession {
 	// Tool permissions
 	private _permissionController?: PermissionController;
 	private _permissionUserMessages: string[] = [];
+	private _activeToolNamesBeforeReadOnly: string[] | undefined;
 
 	private _modelRuntime: ModelRuntime;
 
@@ -451,11 +465,12 @@ export class AgentSession {
 		mode: PermissionMode = "manual",
 	): void {
 		this._permissionController = new PermissionController({
-			mode,
+			mode: "manual",
 			classify: async (request, signal) => await this._classifyToolPermission(request, signal),
 			requestApproval,
 		});
 		this._permissionUserMessages = this._collectUserMessagesForPermissions();
+		this.setPermissionMode(mode);
 	}
 
 	get permissionMode(): PermissionMode {
@@ -463,7 +478,22 @@ export class AgentSession {
 	}
 
 	setPermissionMode(mode: PermissionMode): void {
-		this._permissionController?.setMode(mode);
+		if (!this._permissionController) return;
+
+		const previousMode = this._permissionController.getMode();
+		this._permissionController.setMode(mode);
+		if (mode === "read-only" && previousMode !== "read-only") {
+			this._activeToolNamesBeforeReadOnly = this.getActiveToolNames();
+			this.setActiveToolsByName(
+				Array.from(READ_ONLY_BUILTIN_TOOLS).filter(
+					(name) => this._toolDefinitions.get(name)?.sourceInfo.source === "builtin",
+				),
+			);
+		} else if (mode !== "read-only" && previousMode === "read-only") {
+			const toolNames = this._activeToolNamesBeforeReadOnly ?? [];
+			this._activeToolNamesBeforeReadOnly = undefined;
+			this.setActiveToolsByName(toolNames);
+		}
 	}
 
 	private _collectUserMessagesForPermissions(): string[] {
@@ -495,6 +525,8 @@ Return exactly one JSON object with no markdown and no extra fields:
 
 Approve ordinary, expected work inside a version-controlled project more readily. Be strict about system changes, privilege escalation, credentials, deployments, publishing, operating-system or package-manager updates, destructive Git operations, deleting data, irreversible actions, remote side effects, and any scope broader than the user reasonably requested. Deny ambiguous access.
 
+${this.permissionMode === "auto-read-only" ? "This session is in automatic read-only mode. Approve only when the complete tool call is verifiably non-altering and free of local or remote side effects. Reject writes, edits, state-changing shell commands, configuration changes, package operations, network mutations, and any ambiguous call. A command that mixes read-only and potentially altering operations must be rejected." : ""}
+
 Proposed tool call:
 ${JSON.stringify({
 	cwd: request.cwd,
@@ -510,7 +542,7 @@ ${JSON.stringify({
 		const auth = await this._getRequiredRequestAuth(model);
 		const stream = streamSimple(
 			model,
-			{ systemPrompt: policy, messages: userMessages },
+			{ messages: [{ role: "system", content: policy, timestamp: Date.now() }, ...userMessages] },
 			{ ...auth, signal, maxRetries: 0 },
 		);
 		const response = await stream.result();
@@ -523,6 +555,26 @@ ${JSON.stringify({
 			.join("")
 			.trim();
 		return parseClassifierResult(text);
+	}
+
+	private _getEffectiveSystemPromptOptions(
+		options: NormalizedBuildSystemPromptOptions,
+	): NormalizedBuildSystemPromptOptions {
+		const permissionPrompt =
+			this.permissionMode === "read-only"
+				? READ_ONLY_PERMISSION_PROMPT
+				: this.permissionMode === "auto-read-only"
+					? AUTO_READ_ONLY_PERMISSION_PROMPT
+					: undefined;
+		if (!permissionPrompt) return options;
+		return normalizeBuildSystemPromptOptions({
+			...options,
+			forceSystemPrompt:
+				options.forceSystemPrompt === undefined
+					? undefined
+					: `${options.forceSystemPrompt}\n\n${permissionPrompt}`,
+			sections: { ...options.sections, permission_mode: permissionPrompt },
+		});
 	}
 
 	private async _getRequiredRequestAuth(model: Model<any>): Promise<{
@@ -620,7 +672,7 @@ ${JSON.stringify({
 					args,
 					userMessages: [...this._permissionUserMessages],
 					cwd: this._cwd,
-					exempt: this._toolDefinitions.get(toolCall.name)?.sourceInfo.source === "builtin",
+					builtin: this._toolDefinitions.get(toolCall.name)?.sourceInfo.source === "builtin",
 				},
 				signal,
 			);
@@ -1063,7 +1115,9 @@ ${JSON.stringify({
 
 	/** Current effective system prompt, including changes not yet sent to the model. */
 	get systemPrompt(): string {
-		return buildSystemPrompt(this._runSystemPromptOptions ?? this._baseSystemPromptOptions);
+		return buildSystemPrompt(
+			this._getEffectiveSystemPromptOptions(this._runSystemPromptOptions ?? this._baseSystemPromptOptions),
+		);
 	}
 
 	/** Current retry attempt (0 if not retrying) */
@@ -1241,7 +1295,7 @@ ${JSON.stringify({
 		});
 		const sections = diffSystemPromptSections(
 			getCurrentSystemMessage(messages)?.sections ?? {},
-			buildSystemPromptSections(options),
+			buildSystemPromptSections(this._getEffectiveSystemPromptOptions(options)),
 		);
 		return sections ? { role: "system", content: "", sections, timestamp: Date.now() } : undefined;
 	}
@@ -1260,7 +1314,9 @@ ${JSON.stringify({
 		const previousTransformContext = this.agent.transformContext;
 		this.agent.transformContext = async (messages, signal) => {
 			const transformed = previousTransformContext ? await previousTransformContext(messages, signal) : messages;
-			const forced = this._runSystemPromptOptions?.forceSystemPrompt;
+			const forced = this._getEffectiveSystemPromptOptions(
+				this._runSystemPromptOptions ?? this._baseSystemPromptOptions,
+			).forceSystemPrompt;
 			if (forced === undefined) return transformed;
 			const current = getCurrentSystemMessage(transformed);
 			const head: SystemMessage = {
