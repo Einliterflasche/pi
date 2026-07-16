@@ -157,6 +157,22 @@ describe("parseArgs", () => {
 			expect(result.thinking).toBe("high");
 		});
 
+		test("parses --permission-mode", () => {
+			for (const mode of ["manual", "read-only", "auto-read-only", "auto", "skip"] as const) {
+				const result = parseArgs(["--permission-mode", mode]);
+				expect(result.permissionMode).toBe(mode);
+				expect(result.diagnostics).toEqual([]);
+			}
+		});
+
+		test("rejects invalid or missing permission modes", () => {
+			const invalid = parseArgs(["--permission-mode", "unsafe"]);
+			expect(invalid.diagnostics[0]).toMatchObject({ type: "error" });
+
+			const missing = parseArgs(["--permission-mode"]);
+			expect(missing.diagnostics).toEqual([{ type: "error", message: "--permission-mode requires a value" }]);
+		});
+
 		test("parses --models as comma-separated list", () => {
 			const result = parseArgs(["--models", "gpt-4o,claude-sonnet,gemini-pro"]);
 			expect(result.models).toEqual(["gpt-4o", "claude-sonnet", "gemini-pro"]);

@@ -448,11 +448,9 @@ export class AgentSession {
 	}
 
 	enablePermissions(
-		requestApproval: (
-			request: PermissionRequest,
-			reason: string | undefined,
-			signal?: AbortSignal,
-		) => Promise<boolean>,
+		requestApproval:
+			| ((request: PermissionRequest, reason: string | undefined, signal?: AbortSignal) => Promise<boolean>)
+			| undefined,
 		mode: PermissionMode = "manual",
 	): void {
 		this._permissionController = new PermissionController({
@@ -2808,6 +2806,7 @@ ${JSON.stringify({
 			{
 				getModel: () => this.model,
 				getScopedModels: () => this._scopedModels,
+				getPermissionMode: () => this.permissionMode,
 				isIdle: () => this.isIdle,
 				isProjectTrusted: () => this.settingsManager.isProjectTrusted(),
 				getSignal: () => this.agent.signal,

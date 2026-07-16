@@ -24,11 +24,12 @@ import {
 	type ExtensionAPI,
 	getAgentDir,
 	getMarkdownTheme,
+	type PermissionMode,
 	withFileMutationQueue,
 } from "@earendil-works/pi-coding-agent";
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { type AgentConfig, type AgentScope, discoverAgents } from "./agents.ts";
+import { type AgentConfig, type AgentScope, type AgentSource, discoverAgents } from "./agents.ts";
 
 const MAX_PARALLEL_TASKS = 8;
 const MAX_CONCURRENCY = 4;
@@ -148,7 +149,7 @@ interface UsageStats {
 
 interface SingleResult {
 	agent: string;
-	agentSource: "user" | "project" | "unknown";
+	agentSource: AgentSource | "unknown";
 	task: string;
 	exitCode: number;
 	messages: Message[];
@@ -264,15 +265,38 @@ function getPiInvocation(args: string[]): { command: string; args: string[] } {
 
 type OnUpdateCallback = (partial: AgentToolResult<SubagentDetails>) => void;
 
-interface DispatchDefaults {
+export interface SubagentRuntimeDefaults {
 	model?: string;
-	thinkingLevel?: ThinkingLevel;
+	thinkingLevel: ThinkingLevel;
+	permissionMode: PermissionMode;
+}
+
+export function resolveSubagentPermissionMode(parentMode: PermissionMode): PermissionMode {
+	return parentMode === "manual" ? "read-only" : parentMode;
+}
+
+export function buildSubagentArgs(agent: AgentConfig, defaults: SubagentRuntimeDefaults): string[] {
+	const args = [
+		"--mode",
+		"json",
+		"-p",
+		"--no-session",
+		"--permission-mode",
+		defaults.permissionMode,
+		"--exclude-tools",
+		"subagent",
+	];
+	const model = agent.model ?? defaults.model;
+	if (model) args.push("--model", model);
+	if (!agent.model) args.push("--thinking", defaults.thinkingLevel);
+	if (agent.tools && agent.tools.length > 0) args.push("--tools", agent.tools.join(","));
+	return args;
 }
 
 async function runSingleAgent(
 	defaultCwd: string,
-	dispatchDefaults: DispatchDefaults,
 	agents: AgentConfig[],
+	defaults: SubagentRuntimeDefaults,
 	agentName: string,
 	task: string,
 	cwd: string | undefined,
@@ -297,14 +321,7 @@ async function runSingleAgent(
 		};
 	}
 
-	const args: string[] = ["--mode", "json", "-p", "--no-session"];
-	const inheritsDispatchConfig = !agent.model;
-	const model = agent.model ?? dispatchDefaults.model;
-	if (model) args.push("--model", model);
-	if (inheritsDispatchConfig && dispatchDefaults.thinkingLevel) {
-		args.push("--thinking", dispatchDefaults.thinkingLevel);
-	}
-	if (agent.tools && agent.tools.length > 0) args.push("--tools", agent.tools.join(","));
+	const args = buildSubagentArgs(agent, defaults);
 
 	let tmpPromptDir: string | null = null;
 	let tmpPromptPath: string | null = null;
@@ -317,7 +334,7 @@ async function runSingleAgent(
 		messages: [],
 		stderr: "",
 		usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 },
-		model,
+		model: agent.model ?? defaults.model,
 		step,
 	};
 
@@ -478,17 +495,22 @@ export default function (pi: ExtensionAPI) {
 			`Default agent scope is "user" (from ${path.join(getAgentDir(), "agents")}).`,
 			`To enable project-local agents in ${CONFIG_DIR_NAME}/agents, set agentScope: "both" (or "project").`,
 		].join(" "),
+		promptSnippet: "Delegate focused work to isolated subagents",
+		promptGuidelines: [
+			"Use subagent to delegate focused research, planning, implementation, or review tasks that benefit from an isolated context.",
+		],
 		parameters: SubagentParams,
 
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
 			const agentScope: AgentScope = params.agentScope ?? "user";
-			const dispatchDefaults: DispatchDefaults = {
-				model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined,
-				thinkingLevel: ctx.thinkingLevel,
-			};
 			const discovery = discoverAgents(ctx.cwd, agentScope);
 			const agents = discovery.agents;
 			const confirmProjectAgents = params.confirmProjectAgents ?? true;
+			const defaults: SubagentRuntimeDefaults = {
+				model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined,
+				thinkingLevel: pi.getThinkingLevel(),
+				permissionMode: resolveSubagentPermissionMode(ctx.permissionMode),
+			};
 
 			const hasChain = (params.chain?.length ?? 0) > 0;
 			const hasTasks = (params.tasks?.length ?? 0) > 0;
@@ -572,8 +594,8 @@ export default function (pi: ExtensionAPI) {
 
 					const result = await runSingleAgent(
 						ctx.cwd,
-						dispatchDefaults,
 						agents,
+						defaults,
 						step.agent,
 						taskWithContext,
 						step.cwd,
@@ -645,8 +667,8 @@ export default function (pi: ExtensionAPI) {
 				const results = await mapWithConcurrencyLimit(params.tasks, MAX_CONCURRENCY, async (t, index) => {
 					const result = await runSingleAgent(
 						ctx.cwd,
-						dispatchDefaults,
 						agents,
+						defaults,
 						t.agent,
 						t.task,
 						t.cwd,
@@ -688,8 +710,8 @@ export default function (pi: ExtensionAPI) {
 			if (params.agent && params.task) {
 				const result = await runSingleAgent(
 					ctx.cwd,
-					dispatchDefaults,
 					agents,
+					defaults,
 					params.agent,
 					params.task,
 					params.cwd,
