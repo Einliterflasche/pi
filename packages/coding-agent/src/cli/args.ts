@@ -6,6 +6,7 @@ import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import chalk from "chalk";
 import { APP_NAME, CONFIG_DIR_NAME, ENV_AGENT_DIR, ENV_SESSION_DIR } from "../config.ts";
 import type { ExtensionFlag } from "../core/extensions/types.ts";
+import type { PermissionMode } from "../core/permissions.ts";
 
 export type Mode = "text" | "json" | "rpc";
 
@@ -16,6 +17,7 @@ export interface Args {
 	systemPrompt?: string;
 	appendSystemPrompt?: string[];
 	thinking?: ThinkingLevel;
+	permissionMode?: PermissionMode;
 	continue?: boolean;
 	resume?: boolean;
 	help?: boolean;
@@ -56,9 +58,14 @@ export interface Args {
 }
 
 const VALID_THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
+const VALID_PERMISSION_MODES = ["manual", "read-only", "auto-read-only", "auto", "skip"] as const;
 
 export function isValidThinkingLevel(level: string): level is ThinkingLevel {
 	return VALID_THINKING_LEVELS.includes(level as ThinkingLevel);
+}
+
+export function isValidPermissionMode(mode: string): mode is PermissionMode {
+	return VALID_PERMISSION_MODES.includes(mode as PermissionMode);
 }
 
 export function parseArgs(args: string[]): Args {
@@ -140,6 +147,18 @@ export function parseArgs(args: string[]): Args {
 					message: `Invalid thinking level "${level}". Valid values: ${VALID_THINKING_LEVELS.join(", ")}`,
 				});
 			}
+		} else if (arg === "--permission-mode" && i + 1 < args.length) {
+			const mode = args[++i];
+			if (isValidPermissionMode(mode)) {
+				result.permissionMode = mode;
+			} else {
+				result.diagnostics.push({
+					type: "error",
+					message: `Invalid permission mode "${mode}". Valid values: ${VALID_PERMISSION_MODES.join(", ")}`,
+				});
+			}
+		} else if (arg === "--permission-mode") {
+			result.diagnostics.push({ type: "error", message: "--permission-mode requires a value" });
 		} else if (arg === "--print" || arg === "-p") {
 			result.print = true;
 			const next = args[i + 1];
@@ -262,6 +281,7 @@ ${chalk.bold("Options:")}
   --exclude-tools, -xt <tools>   Comma-separated denylist of tool names to disable
                                  Applies to built-in, extension, and custom tools
   --thinking <level>             Set thinking level: off, minimal, low, medium, high, xhigh, max
+  --permission-mode <mode>       Tool permissions: manual, read-only, auto-read-only, auto, or skip
   --extension, -e <path>         Load an extension file (can be used multiple times)
   --no-extensions, -ne           Disable extension discovery (explicit -e paths still work)
   --skill <path>                 Load a skill file or directory (can be used multiple times)

@@ -10,6 +10,8 @@ Delegate tasks to specialized subagents with isolated context windows.
 - **Markdown rendering**: Final output rendered with proper formatting (expanded view)
 - **Usage tracking**: Shows turns, tokens, cost, and context usage per agent
 - **Abort support**: Ctrl+C propagates to kill subagent processes
+- **Model inheritance**: Uses the parent model and thinking level unless an agent explicitly sets a model
+- **Permission inheritance**: Inherits the parent permission mode; parent manual mode becomes child read-only mode
 
 ## Structure
 
@@ -31,7 +33,9 @@ subagent/
 
 ## Installation
 
-From the repository root, symlink the files:
+This fork loads the extension, bundled agents, and workflow prompts by default. Use `--no-extensions` to disable the extension or `--exclude-tools subagent` to hide only the tool. Use `--no-prompt-templates` to disable the bundled workflows.
+
+For an upstream installation, symlink the files from the repository root:
 
 ```bash
 # Symlink the extension (must be in a subdirectory with index.ts)
@@ -54,7 +58,7 @@ done
 
 ## Security Model
 
-This tool executes a separate `pi` subprocess with a delegated system prompt and tool/model configuration.
+This tool executes a separate `pi` subprocess with a delegated system prompt and tool/model configuration. The child inherits the parent's permission mode, except that `manual` becomes `read-only` so child tool calls never open nested approval dialogs. The parent can still require one approval for the subagent tool call itself.
 
 **Project-local agents** (`.pi/agents/*.md`) are repo-controlled prompts that can instruct the model to read files, run bash commands, etc.
 
@@ -138,8 +142,9 @@ System prompt for the agent goes here.
 ```
 
 **Locations:**
-- `~/.pi/agent/agents/*.md` - User-level (always loaded)
-- `.pi/agents/*.md` - Project-level (only with `agentScope: "project"` or `"both"`)
+- Bundled `agents/*.md` - Built-in fallback agents
+- `~/.pi/agent/agents/*.md` - User-level overrides
+- `.pi/agents/*.md` - Project-level overrides (only with `agentScope: "project"` or `"both"`)
 
 Project agents override user agents with the same name when `agentScope: "both"`.
 
@@ -147,10 +152,10 @@ Project agents override user agents with the same name when `agentScope: "both"`
 
 | Agent | Purpose | Model | Tools |
 |-------|---------|-------|-------|
-| `scout` | Fast codebase recon | Haiku | read, grep, find, ls, bash |
-| `planner` | Implementation plans | Sonnet | read, grep, find, ls |
-| `reviewer` | Code review | Sonnet | read, grep, find, ls, bash |
-| `worker` | General-purpose | Sonnet | (all default) |
+| `scout` | Fast codebase recon | Inherited | read, grep, find, ls, bash |
+| `planner` | Implementation plans | Inherited | read, grep, find, ls |
+| `reviewer` | Code review | Inherited | read, grep, find, ls, bash |
+| `worker` | General-purpose | Inherited | (all default) |
 
 ## Workflow Prompts
 

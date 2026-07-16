@@ -515,6 +515,18 @@ describe("ExtensionRunner", () => {
 			expect(ctx.hasUI).toBe(false);
 		});
 
+		it("exposes the current permission mode on ExtensionContext", async () => {
+			const result = await discoverAndLoadExtensions([], tempDir, tempDir);
+			const runner = new ExtensionRunner(result.extensions, result.runtime, tempDir, sessionManager, modelRegistry);
+			runner.bindCore(extensionActions, {
+				...extensionContextActions,
+				getPermissionMode: () => "auto-read-only",
+			});
+
+			const ctx = runner.createContext();
+			expect(ctx.permissionMode).toBe("auto-read-only");
+		});
+
 		it("exposes project trust state on ExtensionContext", async () => {
 			const result = await discoverAndLoadExtensions([], tempDir, tempDir);
 			const runner = new ExtensionRunner(result.extensions, result.runtime, tempDir, sessionManager, modelRegistry);

@@ -977,9 +977,9 @@ ctx.sessionManager.buildContextEntries()    // Active branch entries with compac
 ctx.sessionManager.getLeafId()              // Current leaf entry ID
 ```
 
-### ctx.modelRegistry / ctx.model
+### ctx.modelRegistry / ctx.model / ctx.permissionMode
 
-Access to models and API keys.
+Access to models, API keys, and the current tool permission mode. `ctx.permissionMode` is one of `"manual"`, `"read-only"`, `"auto-read-only"`, `"auto"`, or `"skip"`. Use it when nested agents or external workers must preserve the parent session's safety policy.
 
 ### ctx.signal
 
