@@ -3791,9 +3791,13 @@ export class InteractiveMode {
 		const indicator =
 			mode === "manual"
 				? theme.fg("dim", "⏸ manual ")
-				: mode === "skip"
-					? theme.fg("error", "⏵⏵ skip permissions ")
-					: theme.fg("warning", "⏵⏵ auto ");
+				: mode === "read-only"
+					? theme.fg("success", "⏸ read only ")
+					: mode === "auto-read-only"
+						? theme.fg("accent", "▣ auto (read only) ")
+						: mode === "skip"
+							? theme.fg("error", "⏵⏵ skip permissions ")
+							: theme.fg("warning", "⏵⏵ auto ");
 		this.defaultEditor.setModeIndicator(indicator);
 		this.ui.requestRender();
 	}
@@ -3805,17 +3809,25 @@ export class InteractiveMode {
 	}
 
 	private cyclePermissionMode(): void {
-		const modes: PermissionMode[] = ["manual", "auto", "skip"];
+		const modes: PermissionMode[] = ["manual", "read-only", "auto-read-only", "auto", "skip"];
 		const current = modes.indexOf(this.permissionMode);
 		this.setPermissionMode(modes[(current + 1) % modes.length] ?? "manual");
 	}
 
 	private async showPermissionModeSelector(): Promise<void> {
-		const labels = ["Manual", "Auto", "Skip permissions"];
-		const selected = await this.showExtensionSelector("Permission mode", labels);
-		if (!selected) return;
-		const mode: PermissionMode = selected === "Manual" ? "manual" : selected === "Auto" ? "auto" : "skip";
-		this.setPermissionMode(mode);
+		const modes: Array<{ label: string; mode: PermissionMode }> = [
+			{ label: "Manual", mode: "manual" },
+			{ label: "Read only", mode: "read-only" },
+			{ label: "Auto (read only)", mode: "auto-read-only" },
+			{ label: "Auto", mode: "auto" },
+			{ label: "Skip permissions", mode: "skip" },
+		];
+		const selected = await this.showExtensionSelector(
+			"Permission mode",
+			modes.map(({ label }) => label),
+		);
+		const mode = modes.find(({ label }) => label === selected)?.mode;
+		if (mode) this.setPermissionMode(mode);
 	}
 
 	private updateEditorBorderColor(): void {
