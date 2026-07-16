@@ -5,6 +5,7 @@
  * createAgentSession() options. The SDK does the heavy lifting.
  */
 
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { type ImageContent, modelsAreEqual } from "@earendil-works/pi-ai";
 import { setCapabilityOverrides } from "@earendil-works/pi-tui";
@@ -33,7 +34,15 @@ import { listModels } from "./cli/list-models.ts";
 import { createProjectTrustContext } from "./cli/project-trust.ts";
 import { selectSession } from "./cli/session-picker.ts";
 import { shouldRunFirstTimeSetup, showFirstTimeSetup, showStartupSelector } from "./cli/startup-ui.ts";
-import { APP_NAME, ENV_SESSION_DIR, expandTildePath, getAgentDir, getPackageDir, VERSION } from "./config.ts";
+import {
+	APP_NAME,
+	ENV_SESSION_DIR,
+	expandTildePath,
+	getAgentDir,
+	getExamplesPath,
+	getPackageDir,
+	VERSION,
+} from "./config.ts";
 import { type CreateAgentSessionRuntimeFactory, createAgentSessionRuntime } from "./core/agent-session-runtime.ts";
 import {
 	type AgentSessionRuntimeDiagnostic,
@@ -568,6 +577,7 @@ export function buildForkRelaunchArgs(
 	addValue("--system-prompt", parsed.systemPrompt);
 	addValues("--append-system-prompt", parsed.appendSystemPrompt);
 	addValue("--thinking", parsed.thinking);
+	addValue("--permission-mode", parsed.permissionMode);
 	if (parsed.models) args.push("--models", parsed.models.join(","));
 	if (parsed.tools) args.push("--tools", parsed.tools.join(","));
 	if (parsed.excludeTools) args.push("--exclude-tools", parsed.excludeTools.join(","));
@@ -773,6 +783,14 @@ export async function main(args: string[], options?: MainOptions) {
 	const resolvedSkillPaths = resolveCliPaths(cwd, parsed.skills);
 	const resolvedPromptTemplatePaths = resolveCliPaths(cwd, parsed.promptTemplates);
 	const resolvedThemePaths = resolveCliPaths(cwd, parsed.themes);
+	const subagentExampleDir = join(getExamplesPath(), "extensions", "subagent");
+	const effectiveExtensionPaths = parsed.noExtensions
+		? resolvedExtensionPaths
+		: [...(resolvedExtensionPaths ?? []), join(subagentExampleDir, "index.ts")];
+	const effectivePromptTemplatePaths =
+		parsed.noExtensions || parsed.noPromptTemplates
+			? resolvedPromptTemplatePaths
+			: [...(resolvedPromptTemplatePaths ?? []), join(subagentExampleDir, "prompts")];
 	const forkRelaunchArgs = buildForkRelaunchArgs(parsed, {
 		extensions: resolvedExtensionPaths,
 		skills: resolvedSkillPaths,
@@ -829,9 +847,9 @@ export async function main(args: string[], options?: MainOptions) {
 					}
 				: undefined,
 			resourceLoaderOptions: {
-				additionalExtensionPaths: resolvedExtensionPaths,
+				additionalExtensionPaths: effectiveExtensionPaths,
 				additionalSkillPaths: resolvedSkillPaths,
-				additionalPromptTemplatePaths: resolvedPromptTemplatePaths,
+				additionalPromptTemplatePaths: effectivePromptTemplatePaths,
 				additionalThemePaths: resolvedThemePaths,
 				noExtensions: parsed.noExtensions,
 				noSkills: parsed.noSkills,
@@ -898,6 +916,9 @@ export async function main(args: string[], options?: MainOptions) {
 		const cliThinkingOverride = parsed.thinking !== undefined || cliThinkingFromModel;
 		if (created.session.model && cliThinkingOverride) {
 			created.session.setThinkingLevel(created.session.thinkingLevel);
+		}
+		if (appMode !== "interactive" && parsed.permissionMode) {
+			created.session.enablePermissions(undefined, parsed.permissionMode);
 		}
 
 		return {
@@ -1007,6 +1028,7 @@ export async function main(args: string[], options?: MainOptions) {
 			initialImages,
 			initialMessages: parsed.messages,
 			initialEditorText,
+			permissionMode: parsed.permissionMode,
 			forkRelaunchArgs: options?.extensionFactories?.length ? undefined : forkRelaunchArgs,
 			verbose: parsed.verbose,
 			tuiMode: parsed.tuiMode,
