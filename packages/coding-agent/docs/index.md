@@ -38,4 +38,4 @@ For platform-specific help, see [Terminal Setup](terminal-setup.md), [Windows](w
 
 Pi's tools and extensions run with the permissions of the Pi process. Project trust controls which project resources Pi loads, but it does not sandbox tool calls. Review [Security](security.md) before using untrusted files, repositories, extensions, or unattended automation.
 
-Read [Tool permissions](permissions.md) for manual, automatic, and unrestricted tool execution modes.
+Read [Tool permissions](permissions.md) for manual, strict and automatic read-only, automatic, and unrestricted modes.
