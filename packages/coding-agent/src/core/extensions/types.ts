@@ -67,6 +67,7 @@ import type { McpServerConfig, McpServerRegistry, RegisteredMcpServer } from "..
 import type { CustomMessage } from "../messages.ts";
 import type { ModelRegistry } from "../model-registry.ts";
 import type { ScopedModel } from "../model-resolver.ts";
+import type { PermissionMode } from "../permissions.ts";
 import type {
 	BranchSummaryEntry,
 	CompactionEntry,
@@ -344,6 +345,8 @@ export interface ExtensionContext {
 	scopedModels: readonly ScopedModel[];
 	/** Current thinking level, when provided by the session runtime. */
 	thinkingLevel?: ThinkingLevel;
+	/** Current tool permission mode. */
+	permissionMode: PermissionMode;
 	/** Whether the agent is idle (not streaming) */
 	isIdle(): boolean;
 	/** Whether project-local trust is active for this context. */
@@ -2180,6 +2183,7 @@ export interface ExtensionActions {
 export interface ExtensionContextActions {
 	getModel: () => Model<any> | undefined;
 	getScopedModels: () => readonly ScopedModel[];
+	getPermissionMode?: () => PermissionMode;
 	isIdle: () => boolean;
 	isProjectTrusted: () => boolean;
 	getSignal: () => AbortSignal | undefined;
