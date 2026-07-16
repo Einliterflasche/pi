@@ -378,6 +378,8 @@ export interface InteractiveModeOptions {
 	terminal?: Terminal;
 	/** Initial editor content supplied by a detached fork handoff. */
 	initialEditorText?: string;
+	/** Initial tool permission mode. Defaults to manual. */
+	permissionMode?: PermissionMode;
 	/** CLI arguments to preserve when launching a detached fork. Undefined disables relaunching. */
 	forkRelaunchArgs?: string[];
 }
@@ -533,6 +535,7 @@ export class InteractiveMode {
 		setCapabilityOverrides(this.settingsManager.getTerminalCapabilityOverrides());
 		const tuiMode = options.tuiMode ?? this.settingsManager.getTuiMode();
 		this.options = { ...options, tuiMode };
+		this.permissionMode = options.permissionMode ?? "manual";
 		this.autoTrustOnReloadCwd = options.autoTrustOnReloadCwd;
 		this.runtimeHost.setBeforeSessionInvalidate(() => {
 			this.resetExtensionUI();
@@ -2041,6 +2044,7 @@ export class InteractiveMode {
 			model: this.session.model,
 			scopedModels: this.session.scopedModels,
 			thinkingLevel: this.session.thinkingLevel,
+			permissionMode: this.session.permissionMode,
 			isIdle: () => this.session.isIdle,
 			isProjectTrusted: () => this.settingsManager.isProjectTrusted(),
 			signal: this.session.agent.signal,
