@@ -882,16 +882,28 @@ pi.on("user_bash", (event, ctx) => {
 
 ### Input Events
 
+#### input_received
+
+Fired immediately when any input is submitted, before extension command handling or asynchronous input preprocessing. All `input_received` handlers are invoked before Pi awaits any of them, so synchronous cancellation or state invalidation cannot be delayed by another handler. Results are ignored; use `input` to transform or handle input.
+
+```typescript
+pi.on("input_received", (event, ctx) => {
+  // Cancel stale extension work as soon as newer input arrives.
+  pendingController?.abort();
+});
+```
+
 #### input
 
 Fired when user input is received, after extension commands are checked but before skill and template expansion. The event sees the raw input text, so `/skill:foo` and `/template` are not yet expanded.
 
 **Processing order:**
-1. Extension commands (`/cmd`) checked first - if found, handler runs and input event is skipped
-2. `input` event fires - can intercept, transform, or handle
-3. If not handled: skill commands (`/skill:name`) expanded to skill content
-4. If not handled: prompt templates (`/template`) expanded to template content
-5. Agent processing begins (`before_agent_start`, etc.)
+1. `input_received` event fires for immediate notification
+2. Extension commands (`/cmd`) checked - if found, the handler runs and `input` is skipped
+3. `input` event fires - can intercept, transform, or handle
+4. If not handled: skill commands (`/skill:name`) expanded to skill content
+5. If not handled: prompt templates (`/template`) expanded to template content
+6. Agent processing begins (`before_agent_start`, etc.)
 
 ```typescript
 pi.on("input", async (event, ctx) => {
@@ -984,9 +996,11 @@ ctx.sessionManager.buildContextEntries()    // Active branch entries with compac
 ctx.sessionManager.getLeafId()              // Current leaf entry ID
 ```
 
-### ctx.modelRegistry / ctx.model / ctx.thinkingLevel / ctx.permissionMode
+### ctx.modelRegistry / ctx.model / ctx.thinkingLevel / ctx.permissionMode / ctx.getPermissionContext()
 
 Access to models, providers, resolved authentication, and the current tool permission mode. `ctx.modelRegistry.getProvider(id)` returns the effective pi-ai provider, while `getProviderAuth(id)` resolves its current API key, headers, base URL, and provider-scoped environment without requiring a loaded model. `ctx.model` is the active model, and `ctx.thinkingLevel` is its current effective thinking level. `ctx.permissionMode` is one of `"manual"`, `"read-only"`, `"auto-read-only"`, `"auto"`, or `"skip"`; nested agents and external workers can use it to preserve the parent session's safety policy.
+
+`ctx.getPermissionContext()` returns genuine user-authored messages used as authorization context. Nested agents should forward these separately from assistant-authored delegation instructions.
 
 ### ctx.signal
 
@@ -2943,6 +2957,7 @@ All examples in [examples/extensions/](../examples/extensions/).
 | `sandbox/` | Sandboxed tool execution | Tool operations |
 | `gondolin/` | Route built-in tools and `!` commands into a Gondolin micro-VM | Tool operations, built-in tool overrides, `on("user_bash")` |
 | `subagent/` | Spawn sub-agents | `registerTool`, `exec` |
+| `goal/` | Bounded active-model goal continuation | `registerCommand`, `agent_settled`, session state |
 | **Games** |||
 | `snake.ts` | Snake game | `registerCommand`, `ui.custom`, keyboard handling |
 | `space-invaders.ts` | Space Invaders game | `registerCommand`, `ui.custom` |

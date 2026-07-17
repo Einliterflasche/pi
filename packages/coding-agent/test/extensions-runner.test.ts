@@ -528,6 +528,18 @@ describe("ExtensionRunner", () => {
 			expect(ctx.permissionMode).toBe("auto-read-only");
 		});
 
+		it("exposes genuine user permission context on ExtensionContext", async () => {
+			const result = await discoverAndLoadExtensions([], tempDir, tempDir);
+			const runner = new ExtensionRunner(result.extensions, result.runtime, tempDir, sessionManager, modelRegistry);
+			runner.bindCore(extensionActions, {
+				...extensionContextActions,
+				getPermissionContext: () => ["user request"],
+			});
+
+			const ctx = runner.createContext();
+			expect(ctx.getPermissionContext()).toEqual(["user request"]);
+		});
+
 		it("exposes project trust state on ExtensionContext", async () => {
 			const result = await discoverAndLoadExtensions([], tempDir, tempDir);
 			const runner = new ExtensionRunner(result.extensions, result.runtime, tempDir, sessionManager, modelRegistry);

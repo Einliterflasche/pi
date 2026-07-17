@@ -12,6 +12,7 @@ function createContext(tokens: number | null, compact = vi.fn()): ExtensionConte
 		modelRegistry: {} as ExtensionContext["modelRegistry"],
 		model: undefined,
 		permissionMode: "skip",
+		getPermissionContext: () => [],
 		isIdle: () => true,
 		isProjectTrusted: () => true,
 		signal: undefined,

@@ -96,6 +96,7 @@ export type {
 	InlineExtension,
 	InputEvent,
 	InputEventResult,
+	InputReceivedEvent,
 	InputSource,
 	KeybindingsManager,
 	LoadExtensionsResult,

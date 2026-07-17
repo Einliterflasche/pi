@@ -103,9 +103,22 @@ describe("runPrintMode", () => {
 		});
 
 		expect(exitCode).toBe(0);
-		expect(session.prompt).toHaveBeenCalledWith("Say done", { images });
+		expect(session.prompt).toHaveBeenCalledWith("Say done", { images, source: "interactive" });
 		expect(session.extensionRunner.emit).toHaveBeenCalledTimes(1);
 		expect(session.extensionRunner.emit).toHaveBeenCalledWith({ type: "session_shutdown", reason: "quit" });
+	});
+
+	it("marks delegated initial prompts as extension-authored", async () => {
+		const runtimeHost = createRuntimeHost(createAssistantMessage({ text: "done" }));
+		const { session } = runtimeHost;
+
+		await runPrintMode(runtimeHost as unknown as Parameters<typeof runPrintMode>[0], {
+			mode: "json",
+			initialMessage: "Delegated task",
+			initialSource: "extension",
+		});
+
+		expect(session.prompt).toHaveBeenCalledWith("Delegated task", { images: undefined, source: "extension" });
 	});
 
 	it("emits session_shutdown in json mode", async () => {

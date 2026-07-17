@@ -323,6 +323,8 @@ export interface ExtensionContext {
 	thinkingLevel?: ThinkingLevel;
 	/** Current tool permission mode. */
 	permissionMode: PermissionMode;
+	/** Genuine user-authored messages used as authorization context for tool permission checks. */
+	getPermissionContext(): readonly string[];
 	/** Whether the agent is idle (not streaming) */
 	isIdle(): boolean;
 	/** Whether project-local trust is active for this context. */
@@ -824,6 +826,19 @@ export interface UserBashEvent {
 /** Source of user input */
 export type InputSource = "interactive" | "rpc" | "extension";
 
+/** Fired immediately when input is submitted, before command handling or asynchronous input transforms. */
+export interface InputReceivedEvent {
+	type: "input_received";
+	/** The raw submitted text. */
+	text: string;
+	/** Attached images, if any. */
+	images?: ImageContent[];
+	/** Where the input came from. */
+	source: InputSource;
+	/** How input will be delivered during streaming, or undefined when idle. */
+	streamingBehavior?: "steer" | "followUp";
+}
+
 /** Fired when user input is received, before agent processing */
 export interface InputEvent {
 	type: "input";
@@ -1051,6 +1066,7 @@ export type ExtensionEvent =
 	| ModelSelectEvent
 	| ThinkingLevelSelectEvent
 	| UserBashEvent
+	| InputReceivedEvent
 	| InputEvent
 	| ToolCallEvent
 	| ToolResultEvent;
@@ -1225,6 +1241,7 @@ export interface ExtensionAPI {
 	on(event: "tool_call", handler: ExtensionHandler<ToolCallEvent, ToolCallEventResult>): void;
 	on(event: "tool_result", handler: ExtensionHandler<ToolResultEvent, ToolResultEventResult>): void;
 	on(event: "user_bash", handler: ExtensionHandler<UserBashEvent, UserBashEventResult>): void;
+	on(event: "input_received", handler: ExtensionHandler<InputReceivedEvent>): void;
 	on(event: "input", handler: ExtensionHandler<InputEvent, InputEventResult>): void;
 
 	// =========================================================================
@@ -1619,6 +1636,7 @@ export interface ExtensionActions {
 export interface ExtensionContextActions {
 	getModel: () => Model<any> | undefined;
 	getPermissionMode?: () => PermissionMode;
+	getPermissionContext?: () => readonly string[];
 	isIdle: () => boolean;
 	isProjectTrusted: () => boolean;
 	getSignal: () => AbortSignal | undefined;

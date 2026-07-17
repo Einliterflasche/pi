@@ -5,6 +5,7 @@
  * createAgentSession() options. The SDK does the heavy lifting.
  */
 
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { type ImageContent, modelsAreEqual } from "@earendil-works/pi-ai";
@@ -52,6 +53,31 @@ import { isLocalPath, normalizePath, resolvePath } from "./utils/paths.ts";
 import { cleanupWindowsSelfUpdateQuarantine } from "./utils/windows-self-update.ts";
 
 const EXTENSION_LOAD_FAILURE_HINT = 'Hint: Start without extensions using "pi -ne".';
+
+interface DelegationContextFile {
+	version: 1;
+	userMessages: string[];
+	delegation: string;
+}
+
+function readDelegationContextFile(filePath: string): DelegationContextFile {
+	const parsed = JSON.parse(readFileSync(normalizePath(filePath), "utf-8")) as unknown;
+	if (
+		typeof parsed !== "object" ||
+		parsed === null ||
+		!("version" in parsed) ||
+		parsed.version !== 1 ||
+		!("userMessages" in parsed) ||
+		!Array.isArray(parsed.userMessages) ||
+		!parsed.userMessages.every((message) => typeof message === "string") ||
+		!("delegation" in parsed) ||
+		typeof parsed.delegation !== "string" ||
+		!parsed.delegation.trim()
+	) {
+		throw new Error("Invalid delegation context file");
+	}
+	return { version: 1, userMessages: parsed.userMessages, delegation: parsed.delegation };
+}
 
 /**
  * Read all content from piped stdin.
@@ -570,6 +596,16 @@ export async function main(args: string[], options?: MainOptions) {
 	}
 	time("parseArgs");
 
+	let delegationContext: DelegationContextFile | undefined;
+	if (parsed.delegationContextFile) {
+		try {
+			delegationContext = readDelegationContextFile(parsed.delegationContextFile);
+		} catch (error) {
+			console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+			process.exit(1);
+		}
+	}
+
 	if (parsed.version) {
 		console.log(VERSION);
 		process.exit(0);
@@ -679,9 +715,13 @@ export async function main(args: string[], options?: MainOptions) {
 	const resolvedPromptTemplatePaths = resolveCliPaths(cwd, parsed.promptTemplates);
 	const resolvedThemePaths = resolveCliPaths(cwd, parsed.themes);
 	const subagentExampleDir = join(getExamplesPath(), "extensions", "subagent");
+	const bundledExtensionPaths = [
+		join(subagentExampleDir, "index.ts"),
+		join(getExamplesPath(), "extensions", "goal", "index.ts"),
+	];
 	const effectiveExtensionPaths = parsed.noExtensions
 		? resolvedExtensionPaths
-		: [...(resolvedExtensionPaths ?? []), join(subagentExampleDir, "index.ts")];
+		: [...(resolvedExtensionPaths ?? []), ...bundledExtensionPaths];
 	const effectivePromptTemplatePaths =
 		parsed.noExtensions || parsed.noPromptTemplates
 			? resolvedPromptTemplatePaths
@@ -813,6 +853,9 @@ export async function main(args: string[], options?: MainOptions) {
 		if (appMode !== "interactive" && parsed.permissionMode) {
 			created.session.enablePermissions(undefined, parsed.permissionMode);
 		}
+		if (delegationContext) {
+			created.session.setPermissionContext(delegationContext.userMessages, delegationContext.delegation);
+		}
 
 		return {
 			...created,
@@ -939,6 +982,7 @@ export async function main(args: string[], options?: MainOptions) {
 			messages: parsed.messages,
 			initialMessage,
 			initialImages,
+			initialSource: delegationContext ? "extension" : "interactive",
 		});
 		stopThemeWatcher();
 		restoreStdout();
