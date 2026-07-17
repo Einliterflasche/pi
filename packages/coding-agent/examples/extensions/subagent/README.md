@@ -60,6 +60,8 @@ done
 
 This tool executes a separate `pi` subprocess with a delegated system prompt and tool/model configuration. The child inherits the parent's permission mode, except that `manual` becomes `read-only` so child tool calls never open nested approval dialogs. The parent can still require one approval for the subagent tool call itself.
 
+The child also inherits the parent's genuine user-authored permission context. Its delegated task is labeled separately as assistant-authored context: the classifier may use it to understand relevance, but never as user authorization.
+
 **Project-local agents** (`.pi/agents/*.md`) are repo-controlled prompts that can instruct the model to read files, run bash commands, etc.
 
 **Default behavior:** Only loads **user-level agents** from `~/.pi/agent/agents`.
