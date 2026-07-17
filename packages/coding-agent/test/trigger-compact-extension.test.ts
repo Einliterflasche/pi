@@ -13,6 +13,7 @@ function createContext(tokens: number | null, compact = vi.fn()): ExtensionConte
 		model: undefined,
 		scopedModels: [],
 		permissionMode: "skip",
+		getPermissionContext: () => [],
 		isIdle: () => true,
 		isProjectTrusted: () => true,
 		signal: undefined,

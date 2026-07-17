@@ -2087,6 +2087,7 @@ export class InteractiveMode {
 			scopedModels: this.session.scopedModels,
 			thinkingLevel: this.session.thinkingLevel,
 			permissionMode: this.session.permissionMode,
+			getPermissionContext: () => this.session.getPermissionContext(),
 			isIdle: () => this.session.isIdle,
 			isProjectTrusted: () => this.settingsManager.isProjectTrusted(),
 			signal: this.session.agent.signal,

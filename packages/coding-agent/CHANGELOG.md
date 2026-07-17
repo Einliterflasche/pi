@@ -11,7 +11,9 @@
 - Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
 - Added Zellij-aware `/fork`, opening persisted forks in a new pane in the same tab while keeping the original session active.
 - Added strict and classifier-backed read-only permission modes with distinct mode indicators.
-- Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, and parent permission-mode inheritance.
+- Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
+- Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
+- Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
 
 ### Fixed
 
