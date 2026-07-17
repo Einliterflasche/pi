@@ -28,6 +28,23 @@ Pi does not ask before every tool call. Review commands and changed files, and u
 
 This fork includes permission modes and the bundled subagent extension. Use `--permission-mode` with `manual`, `read-only`, `auto-read-only`, `auto`, or `skip`. See [Tool permissions](permissions.md) for approval behavior.
 
+## Goal loops
+
+`/goal <objective>` starts an autonomous workflow. After each settled run, an independent evaluator uses the active model and thinking level to assess completion. Incomplete goals receive a tagged continuation that does not count as user authorization or change the permission mode.
+
+```text
+/goal [--turns N] [--tokens N] [--minutes N] <objective>
+/goal status
+/goal pause
+/goal resume
+/goal edit <objective>
+/goal clear
+```
+
+Run, token, and time limits apply only when you provide them. Repeated blockers or three evaluations without material progress pause the loop. The evaluator judges completion and can add a hint when the agent lacks useful information.
+
+Pi persists goal state with the session. Active goals restore paused after session resumption or branch changes. Use `/goal resume` to continue. `--no-extensions` disables `/goal` and the bundled subagent extension.
+
 ## Change direction
 
 You can send more input while Pi is working:

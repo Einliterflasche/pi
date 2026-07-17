@@ -8,6 +8,7 @@
 
 import type { AssistantMessage, ImageContent } from "@earendil-works/pi-ai";
 import type { AgentSessionRuntime } from "../core/agent-session-runtime.ts";
+import type { InputSource } from "../core/extensions/types.ts";
 import { flushRawStdout, waitForRawStdoutBackpressure, writeRawStdout } from "../core/output-guard.ts";
 import { killTrackedDetachedChildren } from "../utils/shell.ts";
 import { toJsonEvent } from "./json-event.ts";
@@ -24,6 +25,8 @@ export interface PrintModeOptions {
 	initialMessage?: string;
 	/** Images to attach to the initial message */
 	initialImages?: ImageContent[];
+	/** Provenance of the initial message. Delegated child tasks use extension provenance. */
+	initialSource?: InputSource;
 }
 
 /**
@@ -31,7 +34,7 @@ export interface PrintModeOptions {
  * Sends prompts to the agent and outputs the result.
  */
 export async function runPrintMode(runtimeHost: AgentSessionRuntime, options: PrintModeOptions): Promise<number> {
-	const { mode, messages = [], initialMessage, initialImages } = options;
+	const { mode, messages = [], initialMessage, initialImages, initialSource = "interactive" } = options;
 	let exitCode = 0;
 	let session = runtimeHost.session;
 	let unsubscribe: (() => void) | undefined;
@@ -129,7 +132,7 @@ export async function runPrintMode(runtimeHost: AgentSessionRuntime, options: Pr
 		await rebindSession();
 
 		if (initialMessage) {
-			await session.prompt(initialMessage, { images: initialImages });
+			await session.prompt(initialMessage, { images: initialImages, source: initialSource });
 		}
 
 		for (const message of messages) {

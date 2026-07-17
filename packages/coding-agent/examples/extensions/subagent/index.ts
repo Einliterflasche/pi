@@ -247,6 +247,32 @@ async function writePromptToTempFile(agentName: string, prompt: string): Promise
 	return { dir: tmpDir, filePath };
 }
 
+export interface SubagentDelegationContext {
+	version: 1;
+	userMessages: string[];
+	delegation: string;
+}
+
+export function buildSubagentDelegationContext(
+	userMessages: readonly string[],
+	delegation: string,
+): SubagentDelegationContext {
+	return { version: 1, userMessages: [...userMessages], delegation };
+}
+
+async function writeDelegationContextToTempFile(
+	agentName: string,
+	context: SubagentDelegationContext,
+): Promise<{ dir: string; filePath: string }> {
+	const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "pi-subagent-delegation-"));
+	const safeName = agentName.replace(/[^\w.-]+/g, "_");
+	const filePath = path.join(tmpDir, `delegation-${safeName}.json`);
+	await withFileMutationQueue(filePath, async () => {
+		await fs.promises.writeFile(filePath, JSON.stringify(context), { encoding: "utf-8", mode: 0o600 });
+	});
+	return { dir: tmpDir, filePath };
+}
+
 function getPiInvocation(args: string[]): { command: string; args: string[] } {
 	const currentScript = process.argv[1];
 	const isBunVirtualScript = currentScript?.startsWith("/$bunfs/root/");
@@ -269,6 +295,7 @@ export interface SubagentRuntimeDefaults {
 	model?: string;
 	thinkingLevel: ThinkingLevel;
 	permissionMode: PermissionMode;
+	permissionContext?: readonly string[];
 }
 
 export function resolveSubagentPermissionMode(parentMode: PermissionMode): PermissionMode {
@@ -325,6 +352,8 @@ async function runSingleAgent(
 
 	let tmpPromptDir: string | null = null;
 	let tmpPromptPath: string | null = null;
+	let tmpDelegationDir: string | null = null;
+	let tmpDelegationPath: string | null = null;
 
 	const currentResult: SingleResult = {
 		agent: agentName,
@@ -355,6 +384,13 @@ async function runSingleAgent(
 			args.push("--append-system-prompt", tmpPromptPath);
 		}
 
+		const delegation = await writeDelegationContextToTempFile(
+			agent.name,
+			buildSubagentDelegationContext(defaults.permissionContext ?? [], task),
+		);
+		tmpDelegationDir = delegation.dir;
+		tmpDelegationPath = delegation.filePath;
+		args.push("--delegation-context-file", tmpDelegationPath);
 		args.push(`Task: ${task}`);
 		let wasAborted = false;
 
@@ -453,6 +489,18 @@ async function runSingleAgent(
 			} catch {
 				/* ignore */
 			}
+		if (tmpDelegationPath)
+			try {
+				fs.unlinkSync(tmpDelegationPath);
+			} catch {
+				/* ignore */
+			}
+		if (tmpDelegationDir)
+			try {
+				fs.rmdirSync(tmpDelegationDir);
+			} catch {
+				/* ignore */
+			}
 	}
 }
 
@@ -510,6 +558,7 @@ export default function (pi: ExtensionAPI) {
 				model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined,
 				thinkingLevel: pi.getThinkingLevel(),
 				permissionMode: resolveSubagentPermissionMode(ctx.permissionMode),
+				permissionContext: ctx.getPermissionContext(),
 			};
 
 			const hasChain = (params.chain?.length ?? 0) > 0;
