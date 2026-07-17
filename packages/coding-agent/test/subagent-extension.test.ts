@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { type AgentConfig, discoverBuiltinAgents } from "../examples/extensions/subagent/agents.ts";
-import { buildSubagentArgs, resolveSubagentPermissionMode } from "../examples/extensions/subagent/index.ts";
+import {
+	buildSubagentArgs,
+	buildSubagentDelegationContext,
+	resolveSubagentPermissionMode,
+} from "../examples/extensions/subagent/index.ts";
 
 const worker: AgentConfig = {
 	name: "worker",
@@ -11,6 +15,16 @@ const worker: AgentConfig = {
 };
 
 describe("subagent extension", () => {
+	it("keeps human authorization separate from assistant-authored delegation", () => {
+		expect(
+			buildSubagentDelegationContext(["Inspect the repository", "/goal verify the fix"], "Modify files"),
+		).toEqual({
+			version: 1,
+			userMessages: ["Inspect the repository", "/goal verify the fix"],
+			delegation: "Modify files",
+		});
+	});
+
 	it("maps manual parent permissions to read-only and inherits every other mode", () => {
 		expect(resolveSubagentPermissionMode("manual")).toBe("read-only");
 		for (const mode of ["read-only", "auto-read-only", "auto", "skip"] as const) {
