@@ -51,6 +51,7 @@ Type `/` in the editor to open command completion. Extensions can register custo
 | `/fork` | Create a new session from a previous user message |
 | `/clone` | Duplicate the current active branch into a new session |
 | `/compact [prompt]` | Manually compact context, optionally with custom instructions |
+| `/goal <objective>` | Continue toward a goal with active-model evaluation and safety limits |
 | `/copy` | Copy last assistant message to clipboard |
 | `/export [file]` | Export session to HTML or JSONL |
 | `/import <file>` | Import and resume a session from a JSONL file |
@@ -59,6 +60,23 @@ Type `/` in the editor to open command completion. Extensions can register custo
 | `/hotkeys` | Show all keyboard shortcuts |
 | `/changelog` | Display version history |
 | `/quit` | Quit pi |
+
+## Goal Loops
+
+`/goal <objective>` starts a bounded autonomous workflow. After each fully settled agent run, an independent evaluator uses the active session model and thinking level to decide whether the objective is complete. Incomplete goals receive an internally tagged continuation; they are not represented as user-authored messages and do not change the current permission mode.
+
+```text
+/goal [--turns N] [--tokens N] [--minutes N] <objective>
+/goal status
+/goal pause
+/goal resume
+/goal edit <objective>
+/goal clear
+```
+
+Agent-run, token, and time limits are unlimited unless their options are provided. Repeated blockers or three evaluations without material progress pause the loop. The evaluator remains a completion judge rather than a planner; it may add an optional hint only when the agent is missing materially useful information. Goal state is persisted with the session. Active goals are restored paused after resuming a session or changing branches, so autonomous work restarts only after `/goal resume`.
+
+`--no-extensions` disables `/goal` and the bundled subagent extension.
 
 ## Message Queue
 
@@ -307,6 +325,6 @@ pi --exclude-tools ask_question
 
 Pi keeps the core small and pushes workflow-specific behavior into extensions, skills, prompt templates, and packages.
 
-This fork ships its permission controller and subagent extension by default while keeping those workflows extension-based. It still leaves MCP, plan mode, to-dos, and background bash to extensions, packages, containers, or tools such as tmux.
+This fork ships its permission controller, subagent extension, and goal-loop extension by default while keeping those workflows extension-based. It still leaves MCP, plan mode, to-dos, and background bash to extensions, packages, containers, or tools such as tmux.
 
 For the full rationale, read the [blog post](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/).

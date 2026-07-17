@@ -90,6 +90,7 @@ export type {
 	// Events - Input
 	InputEvent,
 	InputEventResult,
+	InputReceivedEvent,
 	InputSource,
 	KeybindingsManager,
 	LoadExtensionsResult,

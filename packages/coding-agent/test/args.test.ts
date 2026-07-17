@@ -165,6 +165,12 @@ describe("parseArgs", () => {
 			}
 		});
 
+		test("parses internal delegation context files", () => {
+			const result = parseArgs(["--delegation-context-file", "/tmp/delegation.json"]);
+			expect(result.delegationContextFile).toBe("/tmp/delegation.json");
+			expect(result.diagnostics).toEqual([]);
+		});
+
 		test("rejects invalid or missing permission modes", () => {
 			const invalid = parseArgs(["--permission-mode", "unsafe"]);
 			expect(invalid.diagnostics[0]).toMatchObject({ type: "error" });

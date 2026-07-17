@@ -19,6 +19,8 @@ export interface Args {
 	appendSystemPrompt?: string[];
 	thinking?: ThinkingLevel;
 	permissionMode?: PermissionMode;
+	/** Internal: assistant-authored delegation metadata for isolated child agents. */
+	delegationContextFile?: string;
 	continue?: boolean;
 	resume?: boolean;
 	help?: boolean;
@@ -176,6 +178,10 @@ export function parseArgs(args: string[]): Args {
 			}
 		} else if (arg === "--permission-mode") {
 			result.diagnostics.push({ type: "error", message: "--permission-mode requires a value" });
+		} else if (arg === "--delegation-context-file" && i + 1 < args.length) {
+			result.delegationContextFile = args[++i];
+		} else if (arg === "--delegation-context-file") {
+			result.diagnostics.push({ type: "error", message: "--delegation-context-file requires a value" });
 		} else if (arg === "--print" || arg === "-p") {
 			result.print = true;
 			const next = args[i + 1];

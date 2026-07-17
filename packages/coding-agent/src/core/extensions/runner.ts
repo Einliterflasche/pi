@@ -43,6 +43,7 @@ import type {
 	ExtensionUIContext,
 	InputEvent,
 	InputEventResult,
+	InputReceivedEvent,
 	InputSource,
 	LoadExtensionsResult,
 	MarkdownTransformer,
@@ -167,6 +168,7 @@ type RunnerEmitEvent = Exclude<
 	| BeforeAgentStartEvent
 	| MessageEndEvent
 	| ResourcesDiscoverEvent
+	| InputReceivedEvent
 	| InputEvent
 >;
 
@@ -311,6 +313,7 @@ export class ExtensionRunner {
 	private getModel: () => Model<any> | undefined = () => undefined;
 	private getScopedModels: () => readonly ScopedModel[] = () => [];
 	private getPermissionModeFn: () => PermissionMode = () => "skip";
+	private getPermissionContextFn: () => readonly string[] = () => [];
 	private isIdleFn: () => boolean = () => true;
 	private isProjectTrustedFn: () => boolean = () => true;
 	private getSignalFn: () => AbortSignal | undefined = () => undefined;
@@ -378,6 +381,7 @@ export class ExtensionRunner {
 		this.getModel = contextActions.getModel;
 		this.getScopedModels = contextActions.getScopedModels;
 		this.getPermissionModeFn = contextActions.getPermissionMode ?? (() => "skip");
+		this.getPermissionContextFn = contextActions.getPermissionContext ?? (() => []);
 		this.isIdleFn = contextActions.isIdle;
 		this.isProjectTrustedFn = contextActions.isProjectTrusted;
 		this.getSignalFn = contextActions.getSignal;
@@ -762,6 +766,7 @@ export class ExtensionRunner {
 		const getModel = this.getModel;
 		const getScopedModels = this.getScopedModels;
 		const getPermissionMode = this.getPermissionModeFn;
+		const getPermissionContext = this.getPermissionContextFn;
 		return {
 			get ui() {
 				runner.assertActive();
@@ -802,6 +807,10 @@ export class ExtensionRunner {
 			get permissionMode() {
 				runner.assertActive();
 				return getPermissionMode();
+			},
+			getPermissionContext: () => {
+				runner.assertActive();
+				return [...getPermissionContext()];
 			},
 			isIdle: () => {
 				runner.assertActive();
@@ -1248,6 +1257,45 @@ export class ExtensionRunner {
 		}
 
 		return { skillPaths, promptPaths, themePaths };
+	}
+
+	/** Notify all handlers immediately when input is submitted, before asynchronous preflight work. */
+	async emitInputReceived(
+		text: string,
+		images: ImageContent[] | undefined,
+		source: InputSource,
+		streamingBehavior?: "steer" | "followUp",
+	): Promise<void> {
+		const ctx = this.createContext();
+		const event: InputReceivedEvent = { type: "input_received", text, images, source, streamingBehavior };
+		const pending: Promise<void>[] = [];
+		for (const ext of this.extensions) {
+			for (const handler of ext.handlers.get("input_received") ?? []) {
+				try {
+					pending.push(
+						Promise.resolve(handler(event, ctx)).then(
+							() => {},
+							(error: unknown) => {
+								this.emitError({
+									extensionPath: ext.path,
+									event: "input_received",
+									error: error instanceof Error ? error.message : String(error),
+									stack: error instanceof Error ? error.stack : undefined,
+								});
+							},
+						),
+					);
+				} catch (error) {
+					this.emitError({
+						extensionPath: ext.path,
+						event: "input_received",
+						error: error instanceof Error ? error.message : String(error),
+						stack: error instanceof Error ? error.stack : undefined,
+					});
+				}
+			}
+		}
+		await Promise.all(pending);
 	}
 
 	/** Emit input event. Transforms chain, "handled" short-circuits. */
