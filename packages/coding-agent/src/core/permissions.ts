@@ -6,6 +6,8 @@ export interface PermissionRequest {
 	toolName: string;
 	args: unknown;
 	userMessages: string[];
+	/** Assistant-authored delegation context. Useful for relevance, but never authorization. */
+	delegationContext?: string;
 	cwd: string;
 	/** Whether this tool definition is the verified built-in implementation. */
 	builtin?: boolean;

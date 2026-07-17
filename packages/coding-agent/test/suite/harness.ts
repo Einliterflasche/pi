@@ -23,7 +23,7 @@ import { convertToLlm } from "../../src/core/messages.ts";
 import { SessionManager } from "../../src/core/session-manager.ts";
 import type { Settings } from "../../src/core/settings-manager.ts";
 import { SettingsManager } from "../../src/core/settings-manager.ts";
-import type { InlineExtension, ResourceLoader } from "../../src/index.ts";
+import type { InlineExtension, ResourceLoader, SessionStartEvent } from "../../src/index.ts";
 import { theme } from "../../src/modes/interactive/theme/theme.ts";
 import {
 	type CreateTestExtensionsResultInput,
@@ -121,6 +121,7 @@ export interface HarnessOptions {
 	modelsJson?: Record<string, unknown>;
 	/** Session to continue, for example to test a resume. Default: a new in-memory session. */
 	sessionManager?: SessionManager;
+	sessionStartEvent?: SessionStartEvent;
 }
 
 export interface Harness {
@@ -241,6 +242,7 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
 		allowedToolNames: options.allowedToolNames,
 		excludedToolNames: options.excludedToolNames,
 		extensionRunnerRef,
+		sessionStartEvent: options.sessionStartEvent,
 	});
 
 	const events: AgentSessionEvent[] = [];
