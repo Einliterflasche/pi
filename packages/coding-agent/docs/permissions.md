@@ -26,7 +26,7 @@ Classifier transport or schema failure is also denied because the call cannot be
 
 ## Automatic classification
 
-The classifier receives only user-authored messages, the proposed tool call, the working directory, and whether the working directory is version controlled. It does not receive assistant messages, reasoning, tool results, extension messages, or the normal system prompt.
+The classifier receives only user-authored messages, the proposed tool call, the working directory, and whether the working directory is version controlled. It does not receive assistant messages, reasoning, tool results, extension messages, or the normal system prompt. Isolated subagents additionally receive their parent agent's delegated task in a separately labeled assistant-authored context field. Delegation context may explain relevance but never grants authority or broadens user intent.
 
 The response must be exactly one of:
 

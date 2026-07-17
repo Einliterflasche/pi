@@ -20,6 +20,8 @@ This fork ships permission modes and a bundled subagent extension with isolated 
 
 Use `--permission-mode` with `manual`, `read-only`, `auto-read-only`, `auto`, or `skip`. See [Tool permissions](docs/permissions.md).
 
+The bundled `/goal <objective>` command continues work with an independent evaluator that uses the active model. See [Goal loops](docs/usage.md#goal-loops) for optional limits and pause behavior.
+
 ## Getting started
 
 Install the command-line interface with npm:

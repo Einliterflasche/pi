@@ -104,6 +104,22 @@ Use each event’s declared result type rather than assuming every return value 
 
 Events cover resource discovery, sessions, agent and message lifecycle, providers, tools, and raw input.
 
+`input_received` fires immediately when input arrives, before extension commands or asynchronous preprocessing. Pi invokes every handler before it awaits any handler, so synchronous cancellation runs immediately. Pi ignores the results. Use `input` to transform or handle input.
+
+Input processing runs in this order:
+
+1. Notify `input_received` handlers.
+2. Run a matching extension command and stop ordinary input processing.
+3. Dispatch `input` handlers.
+4. Expand skill commands and prompt templates for unhandled input.
+5. Start agent processing with `before_agent_start`.
+
+```typescript
+pi.on("input_received", () => {
+  pendingController?.abort();
+});
+```
+
 `before_agent_start` exposes both the current prompt and its structured `systemPromptOptions`. Prefer changing prompt sections, selected tools, or guidelines so Pi can append a transcript delta. Returning `systemPrompt`, or setting `forceSystemPrompt`, replaces the whole prompt for that run while the transcript continues recording the structured sections. Providers receive the forced text as their leading system prompt.
 
 `message_end` can replace a finalized message while preserving its role. `tool_call` can mutate input or block execution. `tool_result` handlers compose, with each handler seeing prior changes.
@@ -166,6 +182,8 @@ Use `ctx.modelRegistry.streamSimple()` for provider-neutral nested model calls.
 
 `ctx.permissionMode` exposes `"manual"`, `"read-only"`, `"auto-read-only"`, `"auto"`, or `"skip"`. Nested agents and external workers can use it to preserve the parent session permission policy.
 
+`ctx.getPermissionContext()` returns user-authored authorization messages. Nested agents must forward these separately from assistant-authored delegation instructions.
+
 Command handlers receive `ExtensionCommandContext`, which adds operations for waiting until idle, reloading, tree navigation, and session replacement.
 These operations are command-only because calling them from lifecycle handlers can deadlock the runtime.
 
@@ -222,6 +240,8 @@ Use `ctx.shutdown()` to request an orderly process shutdown.
 <a id="use-examples-as-the-implementation-reference"></a>
 
 ## Examples and reference
+
+The bundled [goal extension](../examples/extensions/goal/) uses `agent_settled`, commands, and persisted state for active-model goal evaluation.
 
 The checked [extension examples](../examples/extensions/) cover tools, lifecycle events, commands, flags, shortcuts, state, rendering, providers, OAuth, remote execution, and terminal components.
 Start with the smallest example matching your integration point.
