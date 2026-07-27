@@ -142,5 +142,4 @@ describe("FooterComponent width handling", () => {
 		expect(statsLine).not.toContain("$0.001");
 		expect(statsLine).not.toContain("auto");
 	});
-
 });
