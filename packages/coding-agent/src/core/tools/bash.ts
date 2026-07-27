@@ -201,7 +201,6 @@ const BASH_UPDATE_THROTTLE_MS = 100;
 
 type BashRenderState = {
 	startedAt: number | undefined;
-	endedAt: number | undefined;
 	interval: NodeJS.Timeout | undefined;
 };
 
@@ -223,12 +222,10 @@ function formatDuration(ms: number): string {
 	return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function formatBashCall(args: { command?: string; timeout?: number } | undefined): string {
+function formatBashCall(args: { command?: string } | undefined): string {
 	const command = str(args?.command);
-	const timeout = args?.timeout as number | undefined;
-	const timeoutSuffix = timeout ? theme.fg("muted", ` (timeout ${timeout}s)`) : "";
 	const commandDisplay = command === null ? invalidArgText(theme) : command ? command : theme.fg("toolOutput", "...");
-	return theme.fg("toolTitle", theme.bold(`$ ${commandDisplay}`)) + timeoutSuffix;
+	return theme.fg("toolTitle", `$ ${commandDisplay}`);
 }
 
 function rebuildBashResultRenderComponent(
@@ -240,7 +237,6 @@ function rebuildBashResultRenderComponent(
 	options: ToolRenderResultOptions,
 	showImages: boolean,
 	startedAt: number | undefined,
-	endedAt: number | undefined,
 ): void {
 	const state = component.state;
 	component.clear();
@@ -289,6 +285,10 @@ function rebuildBashResultRenderComponent(
 		}
 	}
 
+	if (options.isPartial && startedAt !== undefined) {
+		component.addChild(new Text(`\n${theme.fg("muted", `Elapsed ${formatDuration(Date.now() - startedAt)}`)}`, 0, 0));
+	}
+
 	if (truncation?.truncated || fullOutputPath) {
 		const warnings: string[] = [];
 		if (fullOutputPath) {
@@ -304,12 +304,6 @@ function rebuildBashResultRenderComponent(
 			}
 		}
 		component.addChild(new Text(`\n${theme.fg("warning", `[${warnings.join(". ")}]`)}`, 0, 0));
-	}
-
-	if (startedAt !== undefined) {
-		const label = options.isPartial ? "Elapsed" : "Took";
-		const endTime = endedAt ?? Date.now();
-		component.addChild(new Text(`\n${theme.fg("muted", `${label} ${formatDuration(endTime - startedAt)}`)}`, 0, 0));
 	}
 }
 
@@ -457,26 +451,20 @@ export function createBashToolDefinition(
 			}
 		},
 		renderCall(args, _theme, context) {
-			const state = context.state;
-			if (context.executionStarted && state.startedAt === undefined) {
-				state.startedAt = Date.now();
-				state.endedAt = undefined;
+			if (context.executionStarted && context.state.startedAt === undefined) {
+				context.state.startedAt = Date.now();
 			}
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(formatBashCall(args));
 			return text;
 		},
 		renderResult(result, options, _theme, context) {
-			const state = context.state;
-			if (state.startedAt !== undefined && options.isPartial && !state.interval) {
-				state.interval = setInterval(() => context.invalidate(), 1000);
+			if (context.state.startedAt !== undefined && options.isPartial && !context.state.interval) {
+				context.state.interval = setInterval(() => context.invalidate(), 1000);
 			}
-			if (!options.isPartial || context.isError) {
-				state.endedAt ??= Date.now();
-				if (state.interval) {
-					clearInterval(state.interval);
-					state.interval = undefined;
-				}
+			if ((!options.isPartial || context.isError) && context.state.interval) {
+				clearInterval(context.state.interval);
+				context.state.interval = undefined;
 			}
 			const component =
 				(context.lastComponent as BashResultRenderComponent | undefined) ?? new BashResultRenderComponent();
@@ -485,8 +473,7 @@ export function createBashToolDefinition(
 				result as any,
 				options,
 				context.showImages,
-				state.startedAt,
-				state.endedAt,
+				context.state.startedAt,
 			);
 			component.invalidate();
 			return component;

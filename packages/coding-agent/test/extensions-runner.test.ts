@@ -140,6 +140,18 @@ describe("ExtensionRunner", () => {
 		});
 	});
 
+	describe("source runtime imports", () => {
+		it("loads bundled extensions from workspace sources without requiring fresh dist builds", async () => {
+			const examplesDir = path.resolve(import.meta.dirname, "../examples/extensions");
+			const extensionsResult = await loadExtensions(
+				[path.join(examplesDir, "subagent/index.ts"), path.join(examplesDir, "goal/index.ts")],
+				tempDir,
+			);
+
+			expect(extensionsResult.errors).toEqual([]);
+		});
+	});
+
 	describe("shortcut conflicts", () => {
 		it("warns when extension shortcut conflicts with built-in", async () => {
 			const extCode = `

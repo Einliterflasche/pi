@@ -83,7 +83,9 @@ function getAliases(): Record<string, string> {
 	if (_aliases) return _aliases;
 
 	const __dirname = path.dirname(fileURLToPath(import.meta.url));
-	const packageIndex = path.resolve(__dirname, "../..", "index.js");
+	const packageTree = path.basename(path.resolve(__dirname, "../.."));
+	const isSourceRuntime = packageTree === "src";
+	const packageIndex = path.resolve(__dirname, "../..", isSourceRuntime ? "index.ts" : "index.js");
 
 	const typeboxEntry = require.resolve("typebox");
 	const typeboxCompileEntry = require.resolve("typebox/compile");
@@ -99,15 +101,27 @@ function getAliases(): Record<string, string> {
 	};
 
 	const piCodingAgentEntry = packageIndex;
-	const piAgentCoreEntry = resolveWorkspaceOrImport("agent/dist/index.js", "@earendil-works/pi-agent-core");
-	const piTuiEntry = resolveWorkspaceOrImport("tui/dist/index.js", "@earendil-works/pi-tui");
+	const piAgentCoreEntry = resolveWorkspaceOrImport(
+		isSourceRuntime ? "agent/src/index.ts" : "agent/dist/index.js",
+		"@earendil-works/pi-agent-core",
+	);
+	const piTuiEntry = resolveWorkspaceOrImport(
+		isSourceRuntime ? "tui/src/index.ts" : "tui/dist/index.js",
+		"@earendil-works/pi-tui",
+	);
 	// Extensions resolve the pi-ai root to the compat entrypoint (a strict
 	// superset of the core entrypoint): existing extensions using the old
 	// global API keep working at runtime until compat is removed.
-	const piAiCompatEntry = resolveWorkspaceOrImport("ai/dist/compat.js", "@earendil-works/pi-ai/compat");
-	const piAiOauthEntry = resolveWorkspaceOrImport("ai/dist/oauth.js", "@earendil-works/pi-ai/oauth");
+	const piAiCompatEntry = resolveWorkspaceOrImport(
+		isSourceRuntime ? "ai/src/compat.ts" : "ai/dist/compat.js",
+		"@earendil-works/pi-ai/compat",
+	);
+	const piAiOauthEntry = resolveWorkspaceOrImport(
+		isSourceRuntime ? "ai/src/oauth.ts" : "ai/dist/oauth.js",
+		"@earendil-works/pi-ai/oauth",
+	);
 	const piAiProvidersEntry = resolveWorkspaceOrImport(
-		"ai/dist/providers/all.js",
+		isSourceRuntime ? "ai/src/providers/all.ts" : "ai/dist/providers/all.js",
 		"@earendil-works/pi-ai/providers/all",
 	);
 
