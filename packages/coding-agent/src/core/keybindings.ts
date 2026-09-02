@@ -47,7 +47,7 @@ const APP_KEYBINDINGS = {
 		description: "Cycle OpenRouter routing profile",
 	},
 	"app.model.cycleForward": {
-		defaultKeys: "alt+p",
+		defaultKeys: [],
 		description: "Cycle to next model",
 	},
 	"app.model.cycleBackward": {
@@ -55,7 +55,7 @@ const APP_KEYBINDINGS = {
 		description: "Cycle to previous model",
 	},
 	"app.model.select": {
-		defaultKeys: ["ctrl+l", "ctrl+p", "super+p"],
+		defaultKeys: ["ctrl+l", "ctrl+p", "alt+p", "super+p"],
 		description: "Open model selector",
 	},
 	"app.tools.expand": { defaultKeys: "ctrl+o", description: "Toggle tool output" },
