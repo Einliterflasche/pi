@@ -337,6 +337,18 @@ const AUTO_READ_ONLY_PERMISSION_PROMPT = `## Automatic read-only permission mode
 
 Use only tool calls that are clearly and verifiably non-altering. Do not propose operations that modify files or repositories, execute state-changing commands, change configuration, install packages, write data, or cause local or remote side effects. Ambiguous operations will be denied. If the goal cannot be completed with verifiably read-only operations, report exactly what could not be done and ask the user to switch to a broader permission mode.`;
 
+/** Built-in OpenRouter routing profiles used when `openRouterRoutingProfiles` is not configured. */
+const DEFAULT_ROUTING_PROFILES: Record<string, OpenRouterRouting> = {
+	fast: {
+		sort: "throughput",
+		preferred_min_throughput: { p50: 100, p90: 50 },
+		preferred_max_latency: { p50: 1, p90: 3 },
+	},
+	cheap: {
+		sort: "price",
+	},
+};
+
 // ============================================================================
 // AgentSession Class
 // ============================================================================
@@ -2043,9 +2055,10 @@ ${JSON.stringify({
 		return !!this.model?.reasoning;
 	}
 
-	/** Named OpenRouter routing profiles configured in settings. */
+	/** Named OpenRouter routing profiles configured in settings, falling back to built-in defaults. */
 	getRoutingProfiles(): Record<string, OpenRouterRouting> {
-		return this.settingsManager.getOpenRouterRoutingProfiles();
+		const configured = this.settingsManager.getOpenRouterRoutingProfiles();
+		return Object.keys(configured).length > 0 ? configured : DEFAULT_ROUTING_PROFILES;
 	}
 
 	/** Currently active routing profile name, or undefined when using model defaults. */

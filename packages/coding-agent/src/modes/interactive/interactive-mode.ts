@@ -4205,13 +4205,9 @@ export class InteractiveMode {
 	}
 
 	private cycleRoutingProfile(): void {
-		const profiles = this.session.getRoutingProfiles();
-		if (Object.keys(profiles).length === 0) {
-			this.showStatus("No routing profiles configured (openRouterRoutingProfiles setting)");
-			return;
-		}
 		const name = this.session.cycleRoutingProfile();
 		this.showStatus(name ? `Routing profile: ${name}` : "Routing profile: off (model defaults)");
+		this.footer.invalidate();
 		this.ui.requestRender();
 	}
 

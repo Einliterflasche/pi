@@ -52,6 +52,7 @@ function createSession(options: {
 			getCwd: () => "/tmp/project",
 		},
 		getContextUsage: () => ({ contextWindow: 200_000, percent: 12.3 }),
+		getActiveRoutingProfile: () => undefined,
 	};
 
 	return session as unknown as AgentSession;
