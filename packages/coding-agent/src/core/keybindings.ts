@@ -43,7 +43,7 @@ const APP_KEYBINDINGS = {
 		description: "Cycle permission mode",
 	},
 	"app.routing.cycle": {
-		defaultKeys: "alt+o",
+		defaultKeys: "alt+a",
 		description: "Cycle OpenRouter routing profile",
 	},
 	"app.model.cycleForward": {

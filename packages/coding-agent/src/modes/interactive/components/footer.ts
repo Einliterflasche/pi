@@ -213,6 +213,12 @@ export class FooterComponent implements Component {
 			rightSideWithoutProvider += ` → ${routed.model.id}${level}`;
 		}
 
+		// Add active OpenRouter routing profile
+		const routingProfile = this.session.getActiveRoutingProfile();
+		if (routingProfile) {
+			rightSideWithoutProvider = `${rightSideWithoutProvider} • ${routingProfile}`;
+		}
+
 		// Prepend the provider in parentheses if there are multiple providers and there's enough room
 		let rightSide = rightSideWithoutProvider;
 		if (this.footerData.getAvailableProviderCount() > 1 && state.model) {
