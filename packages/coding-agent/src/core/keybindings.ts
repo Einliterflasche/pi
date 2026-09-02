@@ -19,6 +19,7 @@ export interface AppKeybindings {
 	"app.thinking.cycle": true;
 	"app.thinking.save": true;
 	"app.permissions.cycle": true;
+	"app.routing.cycle": true;
 	"app.model.cycleForward": true;
 	"app.model.cycleBackward": true;
 	"app.model.select": true;
@@ -109,6 +110,10 @@ export const KEYBINDINGS = {
 	"app.permissions.cycle": {
 		defaultKeys: "shift+tab",
 		description: "Cycle permission mode",
+	},
+	"app.routing.cycle": {
+		defaultKeys: "alt+o",
+		description: "Cycle OpenRouter routing profile",
 	},
 	"app.model.cycleForward": {
 		defaultKeys: "alt+p",
