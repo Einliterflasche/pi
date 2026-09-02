@@ -4224,6 +4224,10 @@ export class InteractiveMode {
 	}
 
 	private cycleRoutingProfile(): void {
+		if (!this.session.isRoutingProfilesSupported()) {
+			this.showStatus("Routing profiles only apply to OpenRouter models");
+			return;
+		}
 		const name = this.session.cycleRoutingProfile();
 		this.showStatus(name ? `Routing profile: ${name}` : "Routing profile: off (model defaults)");
 		this.footer.invalidate();
