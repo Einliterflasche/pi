@@ -30,6 +30,9 @@ const allowedExternalPackages = new Set([
 	"kerberos",
 	// Optional debug output coloring.
 	"supports-color",
+	// Builtin in the node22.19+ target, but `isBuiltin` does not report it on
+	// Node versions where sqlite is still behind a flag.
+	"node:sqlite",
 ]);
 
 const lazyJitiPlugin = {
