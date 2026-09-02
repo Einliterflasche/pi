@@ -18,12 +18,16 @@ trap 'rm -rf "$work_dir"' EXIT
 release_dir="$work_dir/release"
 stage_dir="$work_dir/stage"
 
-for package_dir in packages/tui packages/ai packages/agent packages/coding-agent; do
+for package_dir in packages/tui packages/chord packages/telemetry packages/ai packages/agent packages/protocol packages/client packages/coding-agent; do
     npm --prefix "$package_dir" run clean
 done
 npm --prefix packages/tui run build
+npm --prefix packages/chord run build
+npm --prefix packages/telemetry run build
 ./node_modules/.bin/tsgo -p packages/ai/tsconfig.build.json
 npm --prefix packages/agent run build
+npm --prefix packages/protocol run build
+npm --prefix packages/client run build
 npm --prefix packages/coding-agent run build
 
 mkdir -p "$release_dir/tarballs"
