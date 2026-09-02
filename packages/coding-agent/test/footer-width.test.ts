@@ -88,6 +88,7 @@ function createSession(options: {
 			isUsingSubscription: () => options.usingSubscription ?? false,
 		},
 		getActiveRoutingProfile: () => undefined,
+		isRoutingProfilesSupported: () => true,
 	};
 
 	return session as unknown as AgentSession;
