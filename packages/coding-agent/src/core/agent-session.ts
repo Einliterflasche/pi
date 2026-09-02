@@ -2089,6 +2089,13 @@ ${JSON.stringify({
 		return this.getRoutingProfiles()[this._activeRoutingProfile];
 	}
 
+	/** Whether the active model is routed through OpenRouter; routing profiles only apply then. */
+	isRoutingProfilesSupported(): boolean {
+		const model = this.model;
+		if (!model) return false;
+		return model.provider === "openrouter" || model.baseUrl.includes("openrouter.ai");
+	}
+
 	private _getThinkingLevelForModelSwitch(targetModel?: Model<any>, explicitLevel?: ThinkingLevel): ThinkingLevel {
 		if (explicitLevel !== undefined) {
 			return explicitLevel;

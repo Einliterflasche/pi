@@ -53,6 +53,7 @@ function createSession(options: {
 		},
 		getContextUsage: () => ({ contextWindow: 200_000, percent: 12.3 }),
 		getActiveRoutingProfile: () => undefined,
+		isRoutingProfilesSupported: () => true,
 	};
 
 	return session as unknown as AgentSession;
