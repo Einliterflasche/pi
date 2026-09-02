@@ -148,8 +148,8 @@ This routing remains configurable through the ordinary action bindings. For exam
 
 | Keybinding id | Default | Description |
 |--------|---------|-------------|
-| `app.model.select` | `ctrl+l`, `ctrl+p`, `super+p` | Open model selector |
-| `app.model.cycleForward` | `alt+p` | Cycle to next model |
+| `app.model.select` | `ctrl+l`, `ctrl+p`, `alt+p`, `super+p` | Open model selector |
+| `app.model.cycleForward` | - (bindable) | Cycle to next model |
 | `app.model.cycleBackward` | `shift+alt+p` (`alt+p` on Windows and WSL) | Cycle to previous model |
 | `app.models.save` | `ctrl+s` | Save the selected default model or scoped model configuration to settings |
 | `app.permissions.cycle` | `shift+tab` | Cycle tool permission mode |
