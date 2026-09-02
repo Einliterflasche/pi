@@ -87,6 +87,7 @@ function createSession(options: {
 		modelRuntime: {
 			isUsingSubscription: () => options.usingSubscription ?? false,
 		},
+		getActiveRoutingProfile: () => undefined,
 	};
 
 	return session as unknown as AgentSession;
