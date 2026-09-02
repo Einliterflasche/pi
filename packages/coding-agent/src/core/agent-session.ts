@@ -1872,6 +1872,12 @@ ${JSON.stringify({
 		const thinkingLevel = this._getThinkingLevelForModelSwitch(model);
 		this.agent.state.model = model;
 		this.sessionManager.appendModelChange(model.provider, model.id);
+
+		// Routing profiles only apply to OpenRouter models; clear the selection when
+		// switching away so a later switch back does not silently restore it.
+		if (this._activeRoutingProfile && !this.isRoutingProfilesSupported()) {
+			this._activeRoutingProfile = undefined;
+		}
 		if (options.persist) {
 			this.settingsManager.setDefaultModelAndProvider(model.provider, model.id);
 			this._addPersistedDefaultToNonEmptyScope(model);
