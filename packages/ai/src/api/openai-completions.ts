@@ -733,6 +733,7 @@ export const streamSimple: StreamFunction<"openai-completions", SimpleStreamOpti
 	const base = {
 		...buildBaseOptions(model, context, options, options?.apiKey),
 		toolChoice: options?.toolChoice,
+		openRouterRouting: options?.openRouterRouting,
 	} satisfies OpenAICompletionsOptions;
 	const clampedReasoning = options?.reasoning ? clampThinkingLevel(model, options.reasoning) : undefined;
 	const reasoningEffort = clampedReasoning === "off" ? undefined : clampedReasoning;
@@ -970,9 +971,16 @@ function buildParams(
 		Object.assign(params, { [thinkingTokenBudgetField]: thinkingBudget });
 	}
 
-	// OpenRouter provider routing preferences
-	if (model.compat?.openRouterRouting) {
-		(params as any).provider = model.compat.openRouterRouting;
+	// OpenRouter provider routing preferences. A request-level override merges over
+	// the model compat baseline so per-model constraints (e.g. `only`) still apply;
+	// applied only for OpenRouter targets so other providers never receive the
+	// `provider` field.
+	const openRouterRouting =
+		options?.openRouterRouting && (model.provider === "openrouter" || model.baseUrl.includes("openrouter.ai"))
+			? { ...model.compat?.openRouterRouting, ...options.openRouterRouting }
+			: model.compat?.openRouterRouting;
+	if (openRouterRouting) {
+		(params as any).provider = openRouterRouting;
 	}
 
 	// Vercel AI Gateway provider routing preferences

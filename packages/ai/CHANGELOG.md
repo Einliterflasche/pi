@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added `StreamOptions.openRouterRouting`, a request-level OpenRouter routing override merged over the model's `openRouterRouting` compat for OpenRouter targets.
+
 ### Fixed
 
 - Fixed GitHub Copilot Claude Fable 5 requests to use the Anthropic Messages adapter so selected reasoning levels are sent ([#8961](https://github.com/earendil-works/pi/issues/8961)).

@@ -13,6 +13,7 @@
 - Added strict and classifier-backed read-only permission modes with distinct mode indicators.
 - Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
 - Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
+- Added named OpenRouter routing profiles via the `openRouterRoutingProfiles` setting, cycleable at runtime with `alt+o` (`app.routing.cycle`); the active profile overrides per-model routing for the current session.
 - Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
 
 ### Fixed

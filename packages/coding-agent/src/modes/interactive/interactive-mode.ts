@@ -2895,6 +2895,7 @@ export class InteractiveMode {
 		this.defaultEditor.onAction("app.suspend", () => this.handleCtrlZ());
 		this.defaultEditor.onAction("app.thinking.cycle", () => this.cycleThinkingLevel());
 		this.defaultEditor.onAction("app.permissions.cycle", () => void this.cyclePermissionMode());
+		this.defaultEditor.onAction("app.routing.cycle", () => this.cycleRoutingProfile());
 		this.defaultEditor.onAction("app.model.cycleForward", () => this.cycleModel("forward"));
 		this.defaultEditor.onAction("app.model.cycleBackward", () => this.cycleModel("backward"));
 
@@ -4201,6 +4202,17 @@ export class InteractiveMode {
 		const modes: PermissionMode[] = ["manual", "read-only", "auto-read-only", "auto", "skip"];
 		const current = modes.indexOf(this.permissionMode);
 		this.setPermissionMode(modes[(current + 1) % modes.length] ?? "manual");
+	}
+
+	private cycleRoutingProfile(): void {
+		const profiles = this.session.getRoutingProfiles();
+		if (Object.keys(profiles).length === 0) {
+			this.showStatus("No routing profiles configured (openRouterRoutingProfiles setting)");
+			return;
+		}
+		const name = this.session.cycleRoutingProfile();
+		this.showStatus(name ? `Routing profile: ${name}` : "Routing profile: off (model defaults)");
+		this.ui.requestRender();
 	}
 
 	private async showPermissionModeSelector(): Promise<void> {

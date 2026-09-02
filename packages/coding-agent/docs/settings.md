@@ -264,6 +264,27 @@ When multiple sources specify a session directory, precedence is `--session-dir`
 }
 ```
 
+### OpenRouter Routing Profiles
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `openRouterRoutingProfiles` | Record<string, OpenRouterRouting> | - | Named OpenRouter routing profiles to cycle with `alt+o` (`app.routing.cycle`) |
+
+Each profile value is an [OpenRouter routing object](https://openrouter.ai/docs/guides/routing/provider-selection) sent as the request's `provider` field, merged over any per-model `openRouterRouting` compat. Profiles apply to whatever OpenRouter model is active; the selection is session-scoped and cycles off -> first profile -> ... -> off.
+
+```json
+{
+  "openRouterRoutingProfiles": {
+    "fast": {
+      "sort": "throughput",
+      "preferred_max_latency": { "p50": 1, "p90": 3 },
+      "preferred_min_throughput": { "p50": 100, "p90": 50 }
+    },
+    "cheap": { "sort": "price" }
+  }
+}
+```
+
 ### Markdown
 
 | Setting | Type | Default | Description |

@@ -32,6 +32,7 @@ import type {
 	ImageContent,
 	Message,
 	Model,
+	OpenRouterRouting,
 	ProviderHeaders,
 	TextContent,
 	Usage,
@@ -406,6 +407,9 @@ export class AgentSession {
 	private _permissionUserMessages: string[] = [];
 	private _permissionDelegationContext: string | undefined;
 	private _activeToolNamesBeforeReadOnly: string[] | undefined;
+
+	// OpenRouter routing profiles (session-scoped active selection)
+	private _activeRoutingProfile: string | undefined;
 
 	private _modelRuntime: ModelRuntime;
 
@@ -2037,6 +2041,39 @@ ${JSON.stringify({
 	 */
 	supportsThinking(): boolean {
 		return !!this.model?.reasoning;
+	}
+
+	/** Named OpenRouter routing profiles configured in settings. */
+	getRoutingProfiles(): Record<string, OpenRouterRouting> {
+		return this.settingsManager.getOpenRouterRoutingProfiles();
+	}
+
+	/** Currently active routing profile name, or undefined when using model defaults. */
+	getActiveRoutingProfile(): string | undefined {
+		return this._activeRoutingProfile;
+	}
+
+	/**
+	 * Cycle the active routing profile: off -> first profile -> ... -> off.
+	 * Returns the newly active profile name, or undefined when cycled to off.
+	 * Does nothing and returns undefined when no profiles are configured.
+	 */
+	cycleRoutingProfile(): string | undefined {
+		const names = Object.keys(this.getRoutingProfiles());
+		if (names.length === 0) return undefined;
+		const order = [undefined, ...names];
+		const next = order[(order.indexOf(this._activeRoutingProfile) + 1) % order.length];
+		this._activeRoutingProfile = next;
+		return next;
+	}
+
+	/**
+	 * Routing override for the active profile, merged over model compat routing
+	 * by the openai-completions adapter. Undefined when no profile is active.
+	 */
+	getActiveRoutingOverride(): OpenRouterRouting | undefined {
+		if (!this._activeRoutingProfile) return undefined;
+		return this.getRoutingProfiles()[this._activeRoutingProfile];
 	}
 
 	private _getThinkingLevelForModelSwitch(targetModel?: Model<any>, explicitLevel?: ThinkingLevel): ThinkingLevel {
