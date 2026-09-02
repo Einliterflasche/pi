@@ -1,3 +1,4 @@
+import { OpenRouterRoutingSchema } from "@earendil-works/pi-ai/providers/compat-schema";
 import { ModelThinkingLevelSchema } from "@earendil-works/pi-ai/providers/model-schema";
 import { type Static, type TSchemaOptions, Type } from "typebox";
 import { SETTINGS_DEFAULTS } from "./settings-defaults.ts";
@@ -213,6 +214,11 @@ export const SettingsSchema = Type.Object(
 		modelThinkingLevels: Type.Optional(
 			Type.Record(Type.String(), ModelThinkingLevelSchema, {
 				description: 'Per-model default thinking level overrides keyed by "provider/modelId".',
+			}),
+		),
+		openRouterRoutingProfiles: Type.Optional(
+			Type.Record(Type.String(), OpenRouterRoutingSchema, {
+				description: "Named OpenRouter routing profiles for app.routing.cycle.",
 			}),
 		),
 		transport: Type.Optional(
