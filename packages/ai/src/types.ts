@@ -191,6 +191,13 @@ export interface StreamOptions extends ProviderRequestOptions<Model<Api>> {
 	 * OpenAI-compatible adapters (completions, responses, Azure responses); other APIs ignore it.
 	 */
 	samplingParams?: Record<string, unknown>;
+	/**
+	 * OpenRouter provider routing preferences merged over `Model.compat.openRouterRouting`
+	 * per key. Only applied by the openai-completions adapter and only for OpenRouter
+	 * targets; other providers ignore it. Lets callers change routing at runtime without
+	 * mutating the model catalog.
+	 */
+	openRouterRouting?: OpenRouterRouting;
 	maxTokens?: number;
 	/**
 	 * Preferred transport for providers that support multiple transports.

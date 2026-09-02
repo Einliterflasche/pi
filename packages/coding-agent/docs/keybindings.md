@@ -153,6 +153,7 @@ This routing remains configurable through the ordinary action bindings. For exam
 | `app.model.cycleBackward` | `shift+alt+p` (`alt+p` on Windows and WSL) | Cycle to previous model |
 | `app.models.save` | `ctrl+s` | Save the selected default model or scoped model configuration to settings |
 | `app.permissions.cycle` | `shift+tab` | Cycle tool permission mode |
+| `app.routing.cycle` | `alt+o` | Cycle OpenRouter routing profile |
 | `app.thinking.cycle` | `alt+t` | Cycle thinking level |
 | `app.thinking.save` | `ctrl+s` | Save current thinking level to settings |
 | `app.thinking.toggle` | `ctrl+t` | Collapse or expand thinking blocks |
