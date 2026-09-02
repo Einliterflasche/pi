@@ -25,6 +25,10 @@
 
 - Added GPT-6 Astra for OpenAI API keys and OpenAI Codex subscriptions.
 
+### Added
+
+- Added `StreamOptions.openRouterRouting`, a request-level OpenRouter routing override merged over the model's `openRouterRouting` compat for OpenRouter targets.
+
 ### Fixed
 
 - Fixed long prompt-cache requests for GPT-5.6+ Responses models to use `prompt_cache_options.ttl: "30m"` instead of `prompt_cache_retention: "24h"`.
