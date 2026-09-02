@@ -155,6 +155,12 @@ export class FooterComponent implements Component {
 				thinkingLevel === "off" ? `${modelName} • thinking off` : `${modelName} • ${thinkingLevel}`;
 		}
 
+		// Add active OpenRouter routing profile
+		const routingProfile = this.session.getActiveRoutingProfile();
+		if (routingProfile) {
+			rightSideWithoutProvider = `${rightSideWithoutProvider} • ${routingProfile}`;
+		}
+
 		// Prepend the provider in parentheses if there are multiple providers and there's enough room
 		let rightSide = rightSideWithoutProvider;
 		if (this.footerData.getAvailableProviderCount() > 1 && state.model) {
