@@ -302,6 +302,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	};
 
 	const extensionRunnerRef: { current?: ExtensionRunner } = {};
+	const sessionRef: { current?: AgentSession } = {};
 	const cacheWarmer = new CacheWarmer(
 		modelRuntime,
 		sessionManager,
@@ -318,6 +319,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		const headerRunner = extensionRunnerRef.current;
 		return {
 			...options,
+			openRouterRouting: sessionRef.current?.getActiveRoutingOverride(),
 			timeoutMs: options.timeoutMs ?? providerRetrySettings.timeoutMs ?? effectiveTimeoutMs,
 			websocketConnectTimeoutMs: options.websocketConnectTimeoutMs ?? settingsManager.getWebSocketConnectTimeoutMs(),
 			maxRetries: options.maxRetries ?? providerRetrySettings.maxRetries,
@@ -438,6 +440,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		extensionRunnerRef,
 		sessionStartEvent: options.sessionStartEvent,
 	});
+	sessionRef.current = session;
 
 	const extensionsResult = resourceLoader.getExtensions();
 
