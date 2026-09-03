@@ -140,7 +140,7 @@ export class ToolExecutionComponent extends Container {
 	}
 
 	private getStatusPrefix(): string {
-		const color = this.isPartial ? "accent" : this.result?.isError ? "error" : "dim";
+		const color = this.isPartial ? "accent" : this.result?.isError ? "error" : "success";
 		return theme.fg(color, "● ");
 	}
 
