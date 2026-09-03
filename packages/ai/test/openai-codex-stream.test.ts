@@ -1061,13 +1061,13 @@ describe("openai-codex streaming", () => {
 	});
 
 	it.each([
-		["gpt-5.1-codex", "flex", 0.5],
-		["gpt-5.1-codex", "priority", 2],
-		["gpt-5.5", "flex", 0.5],
-		["gpt-5.5", "priority", 2.5],
+		["gpt-5.1-codex", "flex"],
+		["gpt-5.1-codex", "priority"],
+		["gpt-5.5", "flex"],
+		["gpt-5.5", "priority"],
 	] as const)(
 		"uses the client-sent %s service tier for %s when Codex echoes default",
-		async (modelId, serviceTier, multiplier) => {
+		async (modelId, serviceTier) => {
 			const tempDir = mkdtempSync(join(tmpdir(), "pi-codex-stream-"));
 			process.env.PI_CODING_AGENT_DIR = tempDir;
 			const token = mockToken();
@@ -1153,9 +1153,13 @@ describe("openai-codex streaming", () => {
 				transport: "sse",
 			}).result();
 
-			expect(result.usage.cost.input).toBe(1 * multiplier);
-			expect(result.usage.cost.output).toBe(2 * multiplier);
-			expect(result.usage.cost.total).toBe(3 * multiplier);
+			// The service tier is still sent to the API, but cost is no longer
+			// estimated at the API layer (null unless the provider reports it).
+			const requestInit = (fetchMock.mock.calls as unknown as Array<[string | URL, RequestInit]>).find(
+				([url]) => String(url) === "https://chatgpt.com/backend-api/codex/responses",
+			)?.[1];
+			expect(decodeCodexRequestBody(requestInit?.body)?.service_tier).toBe(serviceTier);
+			expect(result.usage.cost).toBeNull();
 		},
 	);
 

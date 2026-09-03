@@ -26,7 +26,6 @@ import { NodeHttpHandler } from "@smithy/node-http-handler";
 import type { BuildMiddleware, DeserializeMiddleware, DocumentType, HttpResponse, MetadataBearer } from "@smithy/types";
 import { HttpProxyAgent } from "http-proxy-agent";
 import { HttpsProxyAgent } from "https-proxy-agent";
-import { calculateCost } from "../models.ts";
 import type {
 	Api,
 	AssistantMessage,
@@ -133,7 +132,7 @@ export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
 				cacheRead: 0,
 				cacheWrite: 0,
 				totalTokens: 0,
-				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+				cost: null,
 			},
 			stopReason: "pending",
 			timestamp: Date.now(),
@@ -296,7 +295,7 @@ export const stream: StreamFunction<"bedrock-converse-stream", BedrockOptions> =
 						output.errorMessage = errorMessage;
 					}
 				} else if (item.metadata) {
-					handleMetadata(item.metadata, model, output);
+					handleMetadata(item.metadata, output);
 				} else if (item.internalServerException) {
 					throw item.internalServerException;
 				} else if (item.modelStreamErrorException) {
@@ -682,18 +681,13 @@ function finalizeStreamingBlock(block: Block): void {
 	flushRedactedContent(block);
 }
 
-function handleMetadata(
-	event: ConverseStreamMetadataEvent,
-	model: Model<"bedrock-converse-stream">,
-	output: AssistantMessage,
-): void {
+function handleMetadata(event: ConverseStreamMetadataEvent, output: AssistantMessage): void {
 	if (event.usage) {
 		output.usage.input = event.usage.inputTokens || 0;
 		output.usage.output = event.usage.outputTokens || 0;
 		output.usage.cacheRead = event.usage.cacheReadInputTokens || 0;
 		output.usage.cacheWrite = event.usage.cacheWriteInputTokens || 0;
 		output.usage.totalTokens = event.usage.totalTokens || output.usage.input + output.usage.output;
-		calculateCost(model, output.usage);
 	}
 }
 

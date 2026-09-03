@@ -6,7 +6,7 @@ import { createProvider, type Provider } from "../models.ts";
 import { OPENROUTER_MODELS } from "./openrouter.models.ts";
 
 export function openrouterProvider(): Provider<"anthropic-messages" | "openai-completions"> {
-	return createProvider({
+	return createProvider<"anthropic-messages" | "openai-completions">({
 		id: "openrouter",
 		name: "OpenRouter",
 		baseUrl: "https://openrouter.ai/api/v1",

@@ -1,4 +1,4 @@
-import { calculateCost, clampThinkingLevel } from "../models.ts";
+import { clampThinkingLevel } from "../models.ts";
 import type {
 	AssistantMessage,
 	Context,
@@ -145,7 +145,7 @@ export const stream: StreamFunction<"mistral-conversations", MistralOptions> = (
 			}
 			const mistralStream = await requestMistralStream(model, payload, apiKey, options);
 			stream.push({ type: "start", partial: output });
-			await consumeChatStream(model, output, stream, mistralStream);
+			await consumeChatStream(output, stream, mistralStream);
 
 			if (options?.signal?.aborted) {
 				throw new Error("Request was aborted");
@@ -217,7 +217,7 @@ function createOutput(model: Model<"mistral-conversations">): AssistantMessage {
 			cacheRead: 0,
 			cacheWrite: 0,
 			totalTokens: 0,
-			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+			cost: null,
 		},
 		stopReason: "pending",
 		timestamp: Date.now(),
@@ -556,7 +556,6 @@ function getMistralCachedPromptTokens(usage: unknown, promptTokens: number): num
 }
 
 async function consumeChatStream(
-	model: Model<"mistral-conversations">,
 	output: AssistantMessage,
 	stream: AssistantMessageEventStream,
 	mistralStream: AsyncIterable<MistralCompletionEvent>,
@@ -604,7 +603,6 @@ async function consumeChatStream(
 			output.usage.totalTokens =
 				chunk.usage.total_tokens ||
 				output.usage.input + output.usage.output + output.usage.cacheRead + output.usage.cacheWrite;
-			calculateCost(model, output.usage);
 		}
 
 		const choice = chunk.choices[0];

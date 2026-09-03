@@ -7,7 +7,7 @@ import {
 	type ThinkingConfig,
 	ThinkingLevel,
 } from "@google/genai";
-import { calculateCost, clampThinkingLevel } from "../models.ts";
+import { clampThinkingLevel } from "../models.ts";
 import type {
 	Api,
 	AssistantMessage,
@@ -88,7 +88,7 @@ export const stream: StreamFunction<"google-vertex", GoogleVertexOptions> = (
 				cacheRead: 0,
 				cacheWrite: 0,
 				totalTokens: 0,
-				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+				cost: null,
 			},
 			stopReason: "pending",
 			timestamp: Date.now(),
@@ -248,15 +248,8 @@ export const stream: StreamFunction<"google-vertex", GoogleVertexOptions> = (
 						cacheWrite: 0,
 						reasoning: chunk.usageMetadata.thoughtsTokenCount || 0,
 						totalTokens: chunk.usageMetadata.totalTokenCount || 0,
-						cost: {
-							input: 0,
-							output: 0,
-							cacheRead: 0,
-							cacheWrite: 0,
-							total: 0,
-						},
+						cost: null,
 					};
-					calculateCost(model, output.usage);
 				}
 			}
 

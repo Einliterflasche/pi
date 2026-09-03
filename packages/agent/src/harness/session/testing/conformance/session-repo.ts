@@ -71,7 +71,7 @@ function assistantMessage(stopReason: StopReason): AssistantMessage {
 			cacheRead: 0,
 			cacheWrite: 0,
 			totalTokens: 0,
-			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+			cost: null,
 		},
 		stopReason,
 		...(stopReason === "deferred"
@@ -98,7 +98,7 @@ function usageRow(): Omit<UsageRow, "seq"> {
 			cacheRead: 0,
 			cacheWrite: 0,
 			totalTokens: 3,
-			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+			cost: null,
 		},
 	};
 }
@@ -330,6 +330,7 @@ export function createSessionRepoForkBehaviorConformance<TMetadata extends Sessi
 						cacheRead: 0,
 						cacheWrite: 0,
 						total: 0,
+						source: "estimated",
 					},
 				},
 			});
@@ -488,7 +489,7 @@ export function createSessionRepoForkBehaviorConformance<TMetadata extends Sessi
 					cacheRead: 0,
 					cacheWrite: 0,
 					totalTokens: 0,
-					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "estimated" },
 				});
 				await Promise.all([source.close(BACKGROUND_CONTEXT), fork.close(BACKGROUND_CONTEXT)]);
 			},

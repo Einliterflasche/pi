@@ -24,7 +24,7 @@ export function addUsageToTotals(totals: UsageTotals, usage: Usage): void {
 	totals.output += usage.output;
 	totals.cacheRead += usage.cacheRead;
 	totals.cacheWrite += usage.cacheWrite;
-	totals.cost += usage.cost.total;
+	totals.cost += usage.cost?.total ?? 0;
 }
 
 export interface UsageCostBreakdownEntry {

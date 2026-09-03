@@ -476,13 +476,12 @@ describe("openai-responses provider defaults", () => {
 	});
 
 	it.each([
-		["gpt-5.4", "priority", 2],
-		["gpt-5.5", "priority", 2.5],
-		["gpt-5.5", "flex", 0.5],
-	] as const)("applies %s %s service-tier cost multiplier", async (modelId, serviceTier, multiplier) => {
+		["gpt-5.4", "priority"],
+		["gpt-5.5", "priority"],
+		["gpt-5.5", "flex"],
+	] as const)("sends %s %s service tier", async (modelId, serviceTier) => {
 		const model = getModel("openai", modelId);
 		const tokenCount = 100_000;
-		const tokenScale = tokenCount / 1_000_000;
 		const sse = `${[
 			`data: ${JSON.stringify({
 				type: "response.completed",
@@ -506,6 +505,13 @@ describe("openai-responses provider defaults", () => {
 			}),
 		);
 
+		const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(sse, {
+				status: 200,
+				headers: { "content-type": "text/event-stream" },
+			}),
+		);
+
 		const stream = streamOpenAIResponses(
 			model,
 			{
@@ -517,9 +523,11 @@ describe("openai-responses provider defaults", () => {
 
 		const result = await stream.result();
 
-		expect(result.usage.cost.input).toBe(model.cost.input * multiplier * tokenScale);
-		expect(result.usage.cost.output).toBe(model.cost.output * multiplier * tokenScale);
-		expect(result.usage.cost.total).toBe((model.cost.input + model.cost.output) * multiplier * tokenScale);
+		// The service tier is still sent to the API, but cost is no longer
+		// estimated at the API layer (null unless the provider reports it).
+		const requestInit = fetchSpy.mock.calls[0]?.[1] as { body?: string } | undefined;
+		expect(JSON.parse(requestInit?.body ?? "{}").service_tier).toBe(serviceTier);
+		expect(result.usage.cost).toBeNull();
 	});
 });
 

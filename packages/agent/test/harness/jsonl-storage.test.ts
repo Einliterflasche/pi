@@ -64,7 +64,7 @@ describe("JsonlStorage persistence", () => {
 						cacheRead: 0,
 						cacheWrite: 0,
 						totalTokens: 3,
-						cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+						cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "estimated" as const },
 					},
 				}),
 			],
@@ -105,7 +105,7 @@ describe("JsonlStorage persistence", () => {
 				cacheRead: 0,
 				cacheWrite: 0,
 				totalTokens: 3,
-				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "estimated" as const },
 			},
 		};
 		expect(await reopened.getStats(BACKGROUND_CONTEXT)).toEqual(historicalStats);

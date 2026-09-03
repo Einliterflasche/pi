@@ -401,13 +401,24 @@ export interface Usage {
 	 */
 	reasoning?: number;
 	totalTokens: number;
-	cost: {
-		input: number;
-		output: number;
-		cacheRead: number;
-		cacheWrite: number;
-		total: number;
-	};
+	/**
+	 * Cost accounting. `null` when the provider does not report a real cost and pi
+	 * does not estimate one (currently: every non-OpenRouter target). OpenRouter
+	 * targets carry `source: "reported"` (real billed cost from usage accounting)
+	 * or `source: "estimated"` (catalog rates), with the breakdown scaled so it
+	 * sums to `total`.
+	 */
+	cost: UsageCost | null;
+}
+
+export interface UsageCost {
+	input: number;
+	output: number;
+	cacheRead: number;
+	cacheWrite: number;
+	total: number;
+	/** Whether `total` is the provider-reported billed cost or a catalog-rate estimate. */
+	source: "reported" | "estimated";
 }
 
 export type StopReason = "pending" | "stop" | "length" | "toolUse" | "error" | "aborted" | "deferred";

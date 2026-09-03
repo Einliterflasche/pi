@@ -109,13 +109,21 @@ function combineUsage(first: Usage, second: Usage): Usage {
 			? { reasoning: (first.reasoning ?? 0) + (second.reasoning ?? 0) }
 			: {}),
 		totalTokens: first.totalTokens + second.totalTokens,
-		cost: {
-			input: first.cost.input + second.cost.input,
-			output: first.cost.output + second.cost.output,
-			cacheRead: first.cost.cacheRead + second.cost.cacheRead,
-			cacheWrite: first.cost.cacheWrite + second.cost.cacheWrite,
-			total: first.cost.total + second.cost.total,
-		},
+		// Cost tracking only exists where both sides have it (OpenRouter); a null
+		// cost on either side means untracked, and mixing real and estimated
+		// numbers degrades the sum to an estimate.
+		cost:
+			first.cost && second.cost
+				? {
+						input: first.cost.input + second.cost.input,
+						output: first.cost.output + second.cost.output,
+						cacheRead: first.cost.cacheRead + second.cost.cacheRead,
+						cacheWrite: first.cost.cacheWrite + second.cost.cacheWrite,
+						total: first.cost.total + second.cost.total,
+						source:
+							first.cost.source === "reported" && second.cost.source === "reported" ? "reported" : "estimated",
+					}
+				: null,
 	};
 }
 

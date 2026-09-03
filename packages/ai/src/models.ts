@@ -31,6 +31,7 @@ import type {
 	ProviderStreams,
 	SimpleStreamOptions,
 	Usage,
+	UsageCost,
 } from "./types.ts";
 import { operationSignal, raceWithAbortSignal } from "./utils/abort.ts";
 
@@ -888,7 +889,12 @@ export function hasApi<TApi extends Api>(model: Model<Api>, api: TApi): model is
 	return model.api === api;
 }
 
-export function calculateCost<TApi extends Api>(model: Model<TApi>, usage: Usage): Usage["cost"] {
+/**
+ * Estimate cost from catalog rates. Used for OpenRouter models when the response
+ * carries no reported cost. Returns a fresh cost object; callers assign it to
+ * `usage.cost`.
+ */
+export function calculateCost<TApi extends Api>(model: Model<TApi>, usage: Usage): UsageCost {
 	const inputTokens = usage.input + usage.cacheRead + usage.cacheWrite;
 	let rates: ModelCostRates = model.cost;
 	let matchedThreshold = -1;
@@ -902,12 +908,16 @@ export function calculateCost<TApi extends Api>(model: Model<TApi>, usage: Usage
 	// Anthropic charges 2x base input for 1h cache writes.
 	const longWrite = usage.cacheWrite1h ?? 0;
 	const shortWrite = usage.cacheWrite - longWrite;
-	usage.cost.input = (rates.input / 1000000) * usage.input;
-	usage.cost.output = (rates.output / 1000000) * usage.output;
-	usage.cost.cacheRead = (rates.cacheRead / 1000000) * usage.cacheRead;
-	usage.cost.cacheWrite = (rates.cacheWrite * shortWrite + rates.input * 2 * longWrite) / 1000000;
-	usage.cost.total = usage.cost.input + usage.cost.output + usage.cost.cacheRead + usage.cost.cacheWrite;
-	return usage.cost;
+	const cost: UsageCost = {
+		input: (rates.input / 1000000) * usage.input,
+		output: (rates.output / 1000000) * usage.output,
+		cacheRead: (rates.cacheRead / 1000000) * usage.cacheRead,
+		cacheWrite: (rates.cacheWrite * shortWrite + rates.input * 2 * longWrite) / 1000000,
+		total: 0,
+		source: "estimated",
+	};
+	cost.total = cost.input + cost.output + cost.cacheRead + cost.cacheWrite;
+	return cost;
 }
 
 const EXTENDED_THINKING_LEVELS: ModelThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];

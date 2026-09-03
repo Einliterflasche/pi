@@ -47,7 +47,7 @@ const ZERO_USAGE = {
 	cacheRead: 0,
 	cacheWrite: 0,
 	totalTokens: 0,
-	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "estimated" as const },
 };
 
 async function withStorage<T>(run: (storage: SqliteStorage, db: SqliteDatabase) => Promise<T>): Promise<T> {
@@ -511,7 +511,7 @@ describe("SqliteStorage", () => {
 				cacheRead: 3,
 				cacheWrite: 4,
 				totalTokens: 10,
-				cost: { input: 0.1, output: 0.2, cacheRead: 0.3, cacheWrite: 0.4, total: 1 },
+				cost: { input: 0.1, output: 0.2, cacheRead: 0.3, cacheWrite: 0.4, total: 1, source: "estimated" as const },
 			};
 			sql`INSERT INTO usage_ledger (session_id, id, seq, entry_id, adjustment, usage, details)
 				VALUES
@@ -545,7 +545,7 @@ describe("SqliteStorage", () => {
 						cacheRead: 0,
 						cacheWrite: 0,
 						totalTokens: 3,
-						cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+						cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "estimated" as const },
 					},
 					adjustment: false,
 				}),
@@ -585,7 +585,7 @@ describe("SqliteStorage", () => {
 				cacheRead: 3,
 				cacheWrite: 4,
 				totalTokens: 10,
-				cost: { input: 0.1, output: 0.2, cacheRead: 0.3, cacheWrite: 0.4, total: 1 },
+				cost: { input: 0.1, output: 0.2, cacheRead: 0.3, cacheWrite: 0.4, total: 1, source: "estimated" as const },
 			};
 			sql`INSERT INTO sessions
 				(id, created_at, parent_session_id, storage_version, metadata, message_count, usage_payload, next_seq)
@@ -609,7 +609,7 @@ describe("SqliteStorage", () => {
 				cacheRead: 0,
 				cacheWrite: 0,
 				totalTokens: 3,
-				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "estimated" as const },
 			};
 			await storage.commit(
 				[

@@ -189,8 +189,8 @@ function parseUsage(
 			cacheRead: (model.cost.cacheRead / 1000000) * cacheReadTokens,
 			cacheWrite: (model.cost.cacheWrite / 1000000) * cacheWriteTokens,
 			total: 0,
+			source: "estimated" as const,
 		},
 	};
-	usage.cost.total = usage.cost.input + usage.cost.output + usage.cost.cacheRead + usage.cost.cacheWrite;
 	return usage;
 }

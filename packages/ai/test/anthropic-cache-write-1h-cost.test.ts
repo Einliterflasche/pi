@@ -2,6 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it } from "vitest";
 import { stream as streamAnthropic } from "../src/api/anthropic-messages.ts";
 import { getModel } from "../src/compat.ts";
+import { calculateCost } from "../src/models.ts";
 import type { Context } from "../src/types.ts";
 
 function createSseResponse(events: Array<{ event: string; data: string }>): Response {
@@ -70,7 +71,7 @@ describe("Anthropic 1h cache write cost", () => {
 		expect(result.usage.cacheWrite).toBe(1_000_000);
 		expect(result.usage.cacheWrite1h).toBe(400_000);
 		// 600k * 6.25/Mtok + 400k * 10/Mtok = 3.75 + 4.0 = 7.75
-		expect(result.usage.cost.cacheWrite).toBeCloseTo(7.75, 10);
+		expect(calculateCost(model, result.usage).cacheWrite).toBeCloseTo(7.75, 10);
 	});
 
 	it("falls back to the 5m rate when no breakdown is reported", async () => {
@@ -81,6 +82,6 @@ describe("Anthropic 1h cache write cost", () => {
 		expect(result.usage.cacheWrite).toBe(1_000_000);
 		expect(result.usage.cacheWrite1h ?? 0).toBe(0);
 		// 1M * 6.25/Mtok = 6.25
-		expect(result.usage.cost.cacheWrite).toBeCloseTo(6.25, 10);
+		expect(calculateCost(model, result.usage).cacheWrite).toBeCloseTo(6.25, 10);
 	});
 });

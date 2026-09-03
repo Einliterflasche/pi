@@ -328,7 +328,7 @@ export const stream: StreamFunction<"openai-completions", OpenAICompletionsOptio
 				cacheRead: 0,
 				cacheWrite: 0,
 				totalTokens: 0,
-				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+				cost: null,
 			},
 			stopReason: "pending",
 			timestamp: Date.now(),
@@ -976,11 +976,17 @@ function buildParams(
 	// applied only for OpenRouter targets so other providers never receive the
 	// `provider` field.
 	const openRouterRouting =
-		options?.openRouterRouting && (model.provider === "openrouter" || model.baseUrl.includes("openrouter.ai"))
+		options?.openRouterRouting && isOpenRouterModel(model)
 			? { ...model.compat?.openRouterRouting, ...options.openRouterRouting }
 			: model.compat?.openRouterRouting;
 	if (openRouterRouting) {
 		(params as any).provider = openRouterRouting;
+	}
+
+	// Opt in to OpenRouter usage accounting so the response reports the real
+	// billed cost. Ignored by non-OpenRouter providers.
+	if (isOpenRouterModel(model)) {
+		(params as any).usage = { include: true };
 	}
 
 	// Vercel AI Gateway provider routing preferences
@@ -1512,11 +1518,17 @@ function convertTools(
 	});
 }
 
+/** Whether the request targets OpenRouter; only OpenRouter gets cost accounting. */
+function isOpenRouterModel(model: Model<"openai-completions">): boolean {
+	return model.provider === "openrouter" || model.baseUrl.includes("openrouter.ai");
+}
+
 function parseChunkUsage(
 	rawUsage: {
 		prompt_tokens?: number;
 		completion_tokens?: number;
 		cached_tokens?: number;
+		cost?: unknown;
 		prompt_cache_hit_tokens?: number;
 		prompt_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number };
 		completion_tokens_details?: { reasoning_tokens?: number };
@@ -1549,9 +1561,29 @@ function parseChunkUsage(
 		cacheWrite: cacheWriteTokens,
 		reasoning: rawUsage.completion_tokens_details?.reasoning_tokens || 0,
 		totalTokens: input + outputTokens + cacheReadTokens + cacheWriteTokens,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+		cost: null,
 	};
-	calculateCost(model, usage);
+	if (!isOpenRouterModel(model)) return usage;
+
+	// OpenRouter usage accounting reports the actual billed cost. When present,
+	// use it as the total and scale the catalog-rate breakdown so its parts sum
+	// to the real number. Without it, keep the catalog estimate.
+	const reportedCost = typeof rawUsage.cost === "number" && Number.isFinite(rawUsage.cost) ? rawUsage.cost : undefined;
+	const estimated = calculateCost(model, usage);
+	if (reportedCost === undefined) {
+		usage.cost = estimated;
+		return usage;
+	}
+	if (estimated.total > 0) {
+		const scale = reportedCost / estimated.total;
+		estimated.input *= scale;
+		estimated.output *= scale;
+		estimated.cacheRead *= scale;
+		estimated.cacheWrite *= scale;
+	}
+	estimated.total = reportedCost;
+	estimated.source = "reported";
+	usage.cost = estimated;
 	return usage;
 }
 
