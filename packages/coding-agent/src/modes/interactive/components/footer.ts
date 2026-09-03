@@ -51,6 +51,7 @@ interface SessionStats {
 	entryCount: number;
 	limitsModel: unknown;
 	usageTotals: UsageTotals;
+	exactCost: number;
 	contextUsage: ContextUsage | undefined;
 }
 
@@ -111,19 +112,19 @@ export class FooterComponent implements Component {
 			return cached;
 		}
 
-		// Calculate cumulative usage from ALL session entries (not just post-compaction messages)
+		// Calculate cumulative usage from all entries, including tools and summaries.
 		const usageTotals = createUsageTotals();
-
+		let exactCost = 0;
 		for (const entry of sessionManager.getEntries()) {
-			if (entry.type === "usage") {
-				addUsageToTotals(usageTotals, entry.usage);
-			} else if (entry.type === "message" && entry.message.role === "assistant") {
-				addUsageToTotals(usageTotals, entry.message.usage);
-			} else if (entry.type === "message" && entry.message.role === "toolResult" && entry.message.usage) {
-				addUsageToTotals(usageTotals, entry.message.usage);
-			} else if ((entry.type === "branch_summary" || entry.type === "compaction") && entry.usage) {
-				addUsageToTotals(usageTotals, entry.usage);
-			}
+			const usage =
+				entry.type === "usage" || entry.type === "compaction" || entry.type === "branch_summary"
+					? entry.usage
+					: entry.type === "message" && (entry.message.role === "assistant" || entry.message.role === "toolResult")
+						? entry.message.usage
+						: undefined;
+			if (!usage) continue;
+			addUsageToTotals(usageTotals, usage);
+			if (usage.cost?.source === "reported") exactCost += usage.cost.total;
 		}
 
 		// Calculate context usage from session (handles compaction correctly).
@@ -136,6 +137,7 @@ export class FooterComponent implements Component {
 			entryCount,
 			limitsModel,
 			usageTotals,
+			exactCost,
 			contextUsage,
 		};
 		return this.sessionStats;
@@ -143,7 +145,7 @@ export class FooterComponent implements Component {
 
 	render(width: number): string[] {
 		const state = this.session.state;
-		const { usageTotals, contextUsage } = this.getSessionStats();
+		const { usageTotals, exactCost, contextUsage } = this.getSessionStats();
 		const contextWindow = contextUsage?.contextWindow ?? state.model?.contextWindow ?? 0;
 		const contextPercentValue = contextUsage?.percent ?? 0;
 		const contextPercent = contextUsage?.percent !== null ? contextPercentValue.toFixed(1) : "?";
@@ -179,6 +181,12 @@ export class FooterComponent implements Component {
 			contextPercentStr = contextPercentDisplay;
 		}
 		statsParts.push(contextPercentStr);
+
+		// Session cost next to context usage: exact (reported) only. Omitted entirely
+		// when nothing was provider-reported (non-OpenRouter sessions).
+		if (exactCost > 0) {
+			statsParts.push(theme.fg("dim", `$${exactCost.toFixed(3)}`));
+		}
 		if (areExperimentalFeaturesEnabled()) {
 			statsParts.push(`${theme.fg("dim", "•")} ${theme.bold(theme.fg("warning", "xp"))}`);
 		}
