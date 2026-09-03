@@ -10,7 +10,6 @@ import type {
 	BetaRawMessageStreamEvent as RawMessageStreamEvent,
 	BetaRefusalStopDetails as RefusalStopDetails,
 } from "@anthropic-ai/sdk/resources/beta/messages/messages.js";
-import { calculateCost } from "../models.ts";
 import type {
 	Api,
 	AssistantMessage,
@@ -532,7 +531,7 @@ export const stream: StreamFunction<"anthropic-messages", AnthropicOptions> = (
 				cacheRead: 0,
 				cacheWrite: 0,
 				totalTokens: 0,
-				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+				cost: null,
 			},
 			stopReason: "pending",
 			timestamp: Date.now(),
@@ -541,7 +540,6 @@ export const stream: StreamFunction<"anthropic-messages", AnthropicOptions> = (
 		try {
 			let client: Anthropic;
 			let isOAuth: boolean;
-			let usageModel = model;
 			let inputTransformations: BetaThinkingDroppedInputTransformation[] | undefined;
 
 			if (options?.client) {
@@ -605,13 +603,6 @@ export const stream: StreamFunction<"anthropic-messages", AnthropicOptions> = (
 					if (Array.isArray(transformations)) inputTransformations = transformations;
 					const responseModel = event.message.model;
 					if (responseModel !== model.id) output.responseModel = responseModel;
-					const fallbackCost =
-						responseModel === model.id
-							? undefined
-							: model.compat?.allowedFallbackModels?.find(
-									(fallback) => fallback.provider === model.provider && fallback.model === responseModel,
-								)?.cost;
-					usageModel = fallbackCost ? { ...model, id: responseModel, cost: fallbackCost } : model;
 					// Capture initial token usage from message_start event
 					// This ensures we have input token counts even if the stream is aborted early
 					output.usage.input = event.message.usage.input_tokens || 0;
@@ -622,7 +613,6 @@ export const stream: StreamFunction<"anthropic-messages", AnthropicOptions> = (
 					// Anthropic doesn't provide total_tokens, compute from components
 					output.usage.totalTokens =
 						output.usage.input + output.usage.output + output.usage.cacheRead + output.usage.cacheWrite;
-					calculateCost(usageModel, output.usage);
 				} else if (event.type === "content_block_start") {
 					if (event.content_block.type === "fallback") {
 						if (output.content.length > 0) {
@@ -784,7 +774,6 @@ export const stream: StreamFunction<"anthropic-messages", AnthropicOptions> = (
 					// Anthropic doesn't provide total_tokens, compute from components
 					output.usage.totalTokens =
 						output.usage.input + output.usage.output + output.usage.cacheRead + output.usage.cacheWrite;
-					calculateCost(usageModel, output.usage);
 				}
 			}
 

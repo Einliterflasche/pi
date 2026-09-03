@@ -77,8 +77,8 @@ async function testTokensOnAbort<TApi extends Api>(llm: Model<TApi>, options: St
 
 		// Some providers (Copilot) have zero cost rates
 		if (llm.cost.input > 0) {
-			expect(msg.usage.cost.input).toBeGreaterThan(0);
-			expect(msg.usage.cost.total).toBeGreaterThan(0);
+			expect(msg.usage.cost!.input).toBeGreaterThan(0);
+			expect(msg.usage.cost!.total).toBeGreaterThan(0);
 		}
 	}
 }

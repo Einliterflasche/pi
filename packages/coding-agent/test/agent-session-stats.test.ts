@@ -30,6 +30,7 @@ function createUsage(totalTokens: number): Usage {
 			cacheRead: 0,
 			cacheWrite: 0,
 			total: 0,
+			source: "estimated" as const,
 		},
 	};
 }
@@ -173,7 +174,7 @@ describe("AgentSession.getSessionStats", () => {
 				cacheRead: 30,
 				cacheWrite: 40,
 				totalTokens: 100,
-				cost: { input: 0.1, output: 0.2, cacheRead: 0.3, cacheWrite: 0.4, total: 1 },
+				cost: { input: 0.1, output: 0.2, cacheRead: 0.3, cacheWrite: 0.4, total: 1, source: "estimated" as const },
 			});
 			syncAgentMessages(session, sessionManager);
 
@@ -196,7 +197,7 @@ describe("AgentSession.getSessionStats", () => {
 				cacheRead: 30,
 				cacheWrite: 40,
 				totalTokens: 100,
-				cost: { input: 0.1, output: 0.2, cacheRead: 0.3, cacheWrite: 0.4, total: 1 },
+				cost: { input: 0.1, output: 0.2, cacheRead: 0.3, cacheWrite: 0.4, total: 1, source: "estimated" as const },
 			});
 			syncAgentMessages(session, sessionManager);
 
@@ -219,7 +220,14 @@ describe("AgentSession.getSessionStats", () => {
 					cacheRead: 30,
 					cacheWrite: 40,
 					totalTokens: 100,
-					cost: { input: 0.1, output: 0.2, cacheRead: 0.3, cacheWrite: 0.4, total: 1 },
+					cost: {
+						input: 0.1,
+						output: 0.2,
+						cacheRead: 0.3,
+						cacheWrite: 0.4,
+						total: 1,
+						source: "estimated" as const,
+					},
 				}),
 			);
 			syncAgentMessages(session, sessionManager);
@@ -237,18 +245,24 @@ describe("AgentSession.getSessionStats", () => {
 		const rootId = sessionManager.appendMessage(createUserMessage("hello", 1));
 		sessionManager.appendMessage({
 			...createAssistantMessage("response", 100, 2),
-			usage: { ...createUsage(100), cost: { ...createUsage(100).cost, total: 0.5 } },
+			usage: {
+				...createUsage(100),
+				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0.5, source: "estimated" as const },
+			},
 		});
 		sessionManager.appendMessage(
-			createToolResultMessage({ ...createUsage(100), cost: { ...createUsage(100).cost, total: 1 } }),
+			createToolResultMessage({
+				...createUsage(100),
+				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 1, source: "estimated" as const },
+			}),
 		);
 		sessionManager.appendCompaction("summary", rootId, 100, undefined, false, {
 			...createUsage(100),
-			cost: { ...createUsage(100).cost, total: 2 },
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 2, source: "estimated" as const },
 		});
 		sessionManager.branchWithSummary(null, "branch summary", undefined, false, {
 			...createUsage(100),
-			cost: { ...createUsage(100).cost, total: 3 },
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 3, source: "estimated" as const },
 		});
 
 		expect(getUsageCostBreakdown(sessionManager.getEntries())).toEqual([

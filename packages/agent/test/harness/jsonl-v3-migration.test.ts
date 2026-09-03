@@ -183,6 +183,7 @@ describe("JSONL v3 migration", () => {
 				cacheRead: 0.02,
 				cacheWrite: 0.01,
 				total: 0.18,
+				source: "estimated",
 			},
 		} satisfies Usage;
 		const secondMessage = {
@@ -267,7 +268,7 @@ describe("JSONL v3 migration", () => {
 					cacheRead: 0,
 					cacheWrite: 0,
 					totalTokens: 0,
-					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "estimated" as const },
 				},
 			});
 			return entries;
@@ -454,6 +455,7 @@ describe("JSONL v3 migration", () => {
 				cacheRead: factor * 3,
 				cacheWrite: factor * 4,
 				total: factor * 10,
+				source: "estimated",
 			},
 		});
 		const assistantUsage = usage(1);
@@ -537,6 +539,7 @@ describe("JSONL v3 migration", () => {
 				cacheRead: 0.02,
 				cacheWrite: 0.01,
 				total: 0.18,
+				source: "estimated",
 			},
 		} satisfies Usage;
 		const importedMessage = {
@@ -580,7 +583,7 @@ describe("JSONL v3 migration", () => {
 					cacheRead: 0,
 					cacheWrite: 0,
 					totalTokens: 0,
-					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "estimated" as const },
 				},
 				adjustment: true,
 				details: { source: "v3-import" },
@@ -1372,6 +1375,7 @@ describe("JSONL v3 migration", () => {
 				cacheRead: 0.03,
 				cacheWrite: 0.02,
 				total: 0.23,
+				source: "estimated",
 			},
 		} satisfies Usage;
 		const branchPointMessage = {
@@ -1397,6 +1401,7 @@ describe("JSONL v3 migration", () => {
 					cacheRead: 0,
 					cacheWrite: 0,
 					total: 0.3,
+					source: "estimated",
 				},
 			},
 			stopReason: "stop",
@@ -1579,6 +1584,7 @@ describe("JSONL v3 migration", () => {
 				cacheRead: 0.1,
 				cacheWrite: 0.05,
 				total: 1.65,
+				source: "estimated",
 			},
 		} satisfies Usage;
 

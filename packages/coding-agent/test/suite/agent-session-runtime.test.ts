@@ -133,8 +133,12 @@ describe("AgentSessionRuntime characterization", () => {
 						usage: {
 							...event.message.usage,
 							cost: {
-								...event.message.usage.cost,
+								input: 0,
+								output: 0,
+								cacheRead: 0,
+								cacheWrite: 0,
 								total: 0.123,
+								source: "estimated",
 							},
 						},
 					},
@@ -149,7 +153,7 @@ describe("AgentSessionRuntime characterization", () => {
 		if (sessionAssistant?.role !== "assistant") {
 			throw new Error("missing assistant message");
 		}
-		expect(sessionAssistant.usage.cost.total).toBe(0.123);
+		expect(sessionAssistant.usage.cost?.total).toBe(0.123);
 
 		const persistedAssistant = runtime.session.sessionManager
 			.getEntries()
@@ -160,7 +164,7 @@ describe("AgentSessionRuntime characterization", () => {
 		if (persistedAssistant?.role !== "assistant") {
 			throw new Error("missing persisted assistant message");
 		}
-		expect(persistedAssistant.usage.cost.total).toBe(0.123);
+		expect(persistedAssistant.usage.cost?.total).toBe(0.123);
 	});
 
 	it("settles the active response before session replacement", async () => {

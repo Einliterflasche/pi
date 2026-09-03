@@ -54,4 +54,4 @@ for await (const event of stream) {
 	if (event.type === "text_delta") process.stdout.write(event.delta.replaceAll("\n", " "));
 }
 const final = await stream.result();
-console.log(`[${final.stopReason}] cost: $${final.usage.cost.total.toFixed(6)}`);
+console.log(`[${final.stopReason}] cost: $${(final.usage.cost?.total ?? 0).toFixed(6)}`);

@@ -24,7 +24,7 @@ function seed(): AssistantMessage {
 			cacheRead: 0,
 			cacheWrite: 0,
 			totalTokens: 0,
-			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "estimated" as const },
 		},
 		stopReason: "pending",
 		timestamp: 1,
@@ -517,7 +517,7 @@ describe("assistant message frames", () => {
 		const encoder = new AssistantMessageFrameEncoder();
 		const start = frame(encoder, { type: "start", partial });
 		partial.diagnostics[0]!.details!.value = "mutated";
-		partial.usage.cost.total = 99;
+		partial.usage.cost!.total = 99;
 
 		partial.content.push({
 			type: "toolCall",
@@ -532,7 +532,7 @@ describe("assistant message frames", () => {
 
 		const reduced = reduceAssistantMessageFrames([start, toolStart]);
 		expect(reduced?.diagnostics?.[0]?.details?.value).toBe("original");
-		expect(reduced?.usage.cost.total).toBe(0);
+		expect(reduced?.usage.cost?.total).toBe(0);
 		expect(reduced?.content[0]).toMatchObject({ arguments: { nested: { value: "original" } } });
 
 		if (reduced?.content[0]?.type !== "toolCall") throw new Error("Expected reduced tool call");
