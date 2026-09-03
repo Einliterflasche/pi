@@ -16,7 +16,7 @@ const EMPTY_USAGE = {
 	cacheRead: 0,
 	cacheWrite: 0,
 	totalTokens: 0,
-	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "estimated" as const },
 };
 
 function registerConformance(name: string, cases: readonly ConformanceCase[]): void {

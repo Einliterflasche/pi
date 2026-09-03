@@ -13,7 +13,6 @@ import type {
 	ResponseStreamEvent,
 	ResponseToolSearchOutputItemParam,
 } from "openai/resources/responses/responses.js";
-import { calculateCost } from "../models.ts";
 import type {
 	Api,
 	AssistantMessage,
@@ -28,7 +27,6 @@ import type {
 	Tool,
 	ToolCall,
 	TranscriptContext,
-	Usage,
 } from "../types.ts";
 import type { AssistantMessageEventStream } from "../utils/event-stream.ts";
 import { shortHash } from "../utils/hash.ts";
@@ -111,14 +109,6 @@ export interface OpenAIResponsesStreamOptions {
 	onProviderStreamEvent?: StreamOptions["onProviderStreamEvent"];
 	serviceTier?: ResponseCreateParamsStreaming["service_tier"];
 	grammarToolInputProperties?: ReadonlyMap<string, string>;
-	resolveServiceTier?: (
-		responseServiceTier: ResponseCreateParamsStreaming["service_tier"] | undefined,
-		requestServiceTier: ResponseCreateParamsStreaming["service_tier"] | undefined,
-	) => ResponseCreateParamsStreaming["service_tier"] | undefined;
-	applyServiceTierPricing?: (
-		usage: Usage,
-		serviceTier: ResponseCreateParamsStreaming["service_tier"] | undefined,
-	) => void;
 }
 
 export interface ConvertResponsesMessagesOptions {
@@ -435,7 +425,7 @@ export async function processResponsesStream<TApi extends Api>(
 	openaiStream: AsyncIterable<ResponseStreamEvent>,
 	output: AssistantMessage,
 	stream: AssistantMessageEventStream,
-	model: Model<TApi>,
+	_model: Model<TApi>,
 	options?: OpenAIResponsesStreamOptions,
 ): Promise<void> {
 	let sawTerminalResponseEvent = false;
@@ -572,15 +562,8 @@ export async function processResponsesStream<TApi extends Api>(
 				cacheWrite: cacheWriteTokens,
 				reasoning: response.usage.output_tokens_details?.reasoning_tokens || 0,
 				totalTokens: response.usage.total_tokens || 0,
-				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+				cost: null,
 			};
-		}
-		calculateCost(model, output.usage);
-		if (options?.applyServiceTierPricing) {
-			const serviceTier = options.resolveServiceTier
-				? options.resolveServiceTier(response?.service_tier, options.serviceTier)
-				: (response?.service_tier ?? options.serviceTier);
-			options.applyServiceTierPricing(output.usage, serviceTier);
 		}
 		// Map status to stop reason. For incomplete responses, retain the provider's
 		// specific reason so max-output truncation and content filtering stay distinct.
