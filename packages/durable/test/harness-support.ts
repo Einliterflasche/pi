@@ -72,7 +72,7 @@ export function assistant(
 			cacheRead: 0,
 			cacheWrite: 0,
 			totalTokens: 0,
-			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+			cost: null,
 		},
 		stopReason: options.stopReason ?? (calls.length > 0 ? "toolUse" : "stop"),
 		timestamp: 2,
