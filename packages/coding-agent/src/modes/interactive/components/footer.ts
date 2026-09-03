@@ -81,11 +81,24 @@ export class FooterComponent implements Component {
 		// Calculate cumulative usage from ALL assistant messages (not just post-compaction messages)
 		let totalInput = 0;
 		let totalOutput = 0;
+		// Session cost next to context usage: provider-reported (exact) billing only.
+		// Estimated catalog-rate costs (non-OpenRouter targets) are not displayed.
+		let exactCost = 0;
 
 		for (const entry of this.session.sessionManager.getEntries()) {
 			if (entry.type === "message" && entry.message.role === "assistant") {
 				totalInput += entry.message.usage.input;
 				totalOutput += entry.message.usage.output;
+			}
+			const usage =
+				entry.type === "message" && entry.message.role === "assistant"
+					? entry.message.usage
+					: entry.type === "compaction" || entry.type === "branch_summary"
+						? entry.usage
+						: undefined;
+			if (!usage?.cost) continue;
+			if (usage.cost.source === "reported") {
+				exactCost += usage.cost.total;
 			}
 		}
 
@@ -127,6 +140,12 @@ export class FooterComponent implements Component {
 			contextPercentStr = contextPercentDisplay;
 		}
 		statsParts.push(contextPercentStr);
+
+		// Session cost next to context usage: exact (reported) only. Omitted entirely
+		// when nothing was provider-reported (non-OpenRouter sessions).
+		if (exactCost > 0) {
+			statsParts.push(theme.fg("dim", `$${exactCost.toFixed(3)}`));
+		}
 		if (areExperimentalFeaturesEnabled()) {
 			statsParts.push(`${theme.fg("dim", "•")} ${theme.bold(theme.fg("warning", "xp"))}`);
 		}

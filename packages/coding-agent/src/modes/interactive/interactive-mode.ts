@@ -3815,7 +3815,8 @@ export class InteractiveMode {
 
 		const { usage } = notice;
 		const tokens = usage.input + usage.output + usage.cacheRead + usage.cacheWrite;
-		const cost = usage.cost.total >= 0.01 ? ` (~$${usage.cost.total.toFixed(2)})` : "";
+		const compactionCost = usage.cost?.total ?? 0;
+		const cost = compactionCost >= 0.01 ? ` (~$${compactionCost.toFixed(2)})` : "";
 		const label = notice.kind === "compaction" ? "Compaction" : "Branch summary";
 		this.chatContainer.addChild(new Spacer(1));
 		this.chatContainer.addChild(
