@@ -478,18 +478,17 @@ describe("openai-responses provider defaults", () => {
 	});
 
 	it.each([
-		["gpt-5.4", "priority", "priority", 2],
-		["gpt-5.5", "priority", "priority", 2.5],
-		["gpt-5.5", "flex", "flex", 0.5],
+		["gpt-5.4", "priority", "priority"],
+		["gpt-5.5", "priority", "priority"],
+		["gpt-5.5", "flex", "flex"],
 		// GPT-6 models report Fast mode as "fast" even when "priority" is requested (#10034)
-		["gpt-6-luna", "priority", "fast", 2],
-		["gpt-6-luna", "fast", "fast", 2],
+		["gpt-6-luna", "priority", "fast"],
+		["gpt-6-luna", "fast", "fast"],
 	] as const)(
-		"applies %s cost multiplier for requested %s and returned %s service tier",
-		async (modelId, serviceTier, responseServiceTier, multiplier) => {
+		"sends %s requested %s service tier when the response reports %s",
+		async (modelId, serviceTier, responseServiceTier) => {
 			const model = getModel("openai", modelId);
 			const tokenCount = 100_000;
-			const tokenScale = tokenCount / 1_000_000;
 			const sse = `${[
 				`data: ${JSON.stringify({
 					type: "response.completed",
@@ -506,7 +505,7 @@ describe("openai-responses provider defaults", () => {
 				})}`,
 			].join("\n\n")}\n\n`;
 
-			vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
 				new Response(sse, {
 					status: 200,
 					headers: { "content-type": "text/event-stream" },
@@ -524,12 +523,12 @@ describe("openai-responses provider defaults", () => {
 
 			const result = await stream.result();
 
-			expect(result.usage.cost.input).toBeCloseTo(model.cost.input * multiplier * tokenScale, 12);
-			expect(result.usage.cost.output).toBeCloseTo(model.cost.output * multiplier * tokenScale, 12);
-			expect(result.usage.cost.total).toBeCloseTo(
-				(model.cost.input + model.cost.output) * multiplier * tokenScale,
-				12,
-			);
+			const requestInit = fetchSpy.mock.calls[0]?.[1] as { body?: string } | undefined;
+			expect(JSON.parse(requestInit?.body ?? "{}").service_tier).toBe(serviceTier);
+			expect(result.stopReason).toBe("stop");
+			expect(result.usage.input).toBe(tokenCount);
+			expect(result.usage.output).toBe(tokenCount);
+			expect(result.usage.cost).toBeNull();
 		},
 	);
 });

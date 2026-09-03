@@ -31,7 +31,10 @@ export interface CacheWasteTotals {
 
 /** Minimal pricing lookup, satisfied by ModelRuntime. Cost is $/million tokens. */
 export interface ModelPriceSource {
-	getModel(provider: string, modelId: string): { cost: { cacheRead: number } } | undefined;
+	getModel(
+		provider: string,
+		modelId: string,
+	): { cost: { input: number; cacheWrite: number; cacheRead: number } } | undefined;
 }
 
 /** The last request seen by the scan; everything in its prompt should be cached. */
@@ -75,9 +78,14 @@ function detectMiss(
 	// land in the input or cacheWrite buckets, so the paid rate comes straight
 	// from this message's own cost breakdown.
 	const paidTokens = usage.input + usage.cacheWrite;
-	const paidPerToken = paidTokens > 0 ? (usage.cost.input + usage.cost.cacheWrite) / paidTokens : 0;
+	const paidPerToken =
+		paidTokens > 0 && usage.cost
+			? (usage.cost.input + usage.cost.cacheWrite) / paidTokens
+			: ((models.getModel(message.provider, message.model)?.cost.input ?? 0) +
+					(models.getModel(message.provider, message.model)?.cost.cacheWrite ?? 0)) /
+				1_000_000;
 	const readPerToken =
-		usage.cacheRead > 0
+		usage.cost && usage.cacheRead > 0
 			? usage.cost.cacheRead / usage.cacheRead
 			: (models.getModel(message.provider, message.model)?.cost.cacheRead ?? 0) / 1_000_000;
 

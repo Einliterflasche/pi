@@ -24,8 +24,12 @@ describe("regression #3982: message_end cost override", () => {
 								usage: {
 									...event.message.usage,
 									cost: {
-										...event.message.usage.cost,
+										input: 0,
+										output: 0,
+										cacheRead: 0,
+										cacheWrite: 0,
 										total: 0.123,
+										source: "estimated",
 									},
 								},
 							},
@@ -44,13 +48,13 @@ describe("regression #3982: message_end cost override", () => {
 		if (assistantMessage?.role !== "assistant") {
 			throw new Error("missing assistant message");
 		}
-		expect(assistantMessage.usage.cost.total).toBe(0.123);
+		expect(assistantMessage.usage.cost?.total).toBe(0.123);
 
 		const messageEnd = harness.eventsOfType("message_end").find((event) => event.message.role === "assistant");
 		expect(messageEnd?.message.role).toBe("assistant");
 		if (messageEnd?.message.role !== "assistant") {
 			throw new Error("missing assistant message_end event");
 		}
-		expect(messageEnd.message.usage.cost.total).toBe(0.123);
+		expect(messageEnd.message.usage.cost?.total).toBe(0.123);
 	});
 });
