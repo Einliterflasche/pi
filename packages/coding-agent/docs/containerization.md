@@ -2,6 +2,8 @@
 
 Use an isolated environment to limit the files, credentials, processes, and network services that generated commands can access or affect.
 
+This fork starts interactive tool calls under `auto` permission review. Approved tools still use the Pi process filesystem and network access. Permission review does not provide an operating-system sandbox.
+
 You can isolate the complete Pi process or keep Pi on the host and route selected tools into an isolated environment.
 
 ## Choose an isolation method
