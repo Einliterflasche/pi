@@ -66,6 +66,14 @@ describe("AgentSession queue characterization", () => {
 		}
 	});
 
+	it("batches steering and follow-up messages by default", async () => {
+		const harness = await createHarness();
+		harnesses.push(harness);
+
+		expect(harness.session.steeringMode).toBe("all");
+		expect(harness.session.followUpMode).toBe("all");
+	});
+
 	it("dispatches extension commands immediately when prompted while idle", async () => {
 		const commandRuns: string[] = [];
 		const harness = await createHarness({
@@ -207,6 +215,7 @@ describe("AgentSession queue characterization", () => {
 		const waiting = await createWaitingHarness();
 		const { harness, waitForToolStart, promptPromise, releaseToolExecution } = waiting;
 		harnesses.push(harness);
+		harness.session.setSteeringMode("one-at-a-time");
 
 		harness.setResponses([
 			fauxAssistantMessage(fauxToolCall("wait", {}), { stopReason: "toolUse" }),
@@ -228,6 +237,7 @@ describe("AgentSession queue characterization", () => {
 		const waiting = await createWaitingHarness();
 		const { harness, waitForToolStart, promptPromise, releaseToolExecution } = waiting;
 		harnesses.push(harness);
+		harness.session.setFollowUpMode("one-at-a-time");
 
 		harness.setResponses([
 			fauxAssistantMessage(fauxToolCall("wait", {}), { stopReason: "toolUse" }),
@@ -276,6 +286,34 @@ describe("AgentSession queue characterization", () => {
 
 		expect(batchedUserMessages).toEqual(["start", "steer 1", "steer 2"]);
 		expect(getAssistantTexts(harness)).toEqual(["", "batched steer response"]);
+	});
+
+	it("aborts into all queued steering messages without requiring another prompt", async () => {
+		const waiting = await createWaitingHarness();
+		const { harness, waitForToolStart, promptPromise, releaseToolExecution } = waiting;
+		harnesses.push(harness);
+		let resumedUserMessages: string[] = [];
+
+		harness.setResponses([
+			fauxAssistantMessage(fauxToolCall("wait", {}), { stopReason: "toolUse" }),
+			fauxAssistantMessage("discarded aborted continuation"),
+			(context) => {
+				resumedUserMessages = context.messages
+					.filter((message) => message.role === "user")
+					.map((message) => getMessageText(message));
+				return fauxAssistantMessage("continued after abort");
+			},
+		]);
+
+		await waitForToolStart;
+		await harness.session.steer("steer 1");
+		await harness.session.steer("steer 2");
+		const abortPromise = harness.session.abortAndContinueWithQueuedMessages();
+		releaseToolExecution();
+		await Promise.all([promptPromise, abortPromise]);
+
+		expect(resumedUserMessages).toEqual(["start", "steer 1", "steer 2"]);
+		expect(getAssistantTexts(harness)).toContain("continued after abort");
 	});
 
 	it("delivers all follow-up messages in one batch in all mode", async () => {
