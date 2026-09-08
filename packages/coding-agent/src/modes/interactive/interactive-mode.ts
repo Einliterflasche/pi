@@ -2880,6 +2880,7 @@ export class InteractiveMode {
 			}
 
 			this.editor = newEditor;
+			this.updatePermissionModeIndicator();
 		} else {
 			// Restore default editor with text from custom editor
 			this.defaultEditor.setText(currentText);
@@ -3018,7 +3019,11 @@ export class InteractiveMode {
 		// so they work correctly regardless of which editor is active
 		this.defaultEditor.onEscape = () => {
 			if (this.session.isStreaming) {
-				this.restoreQueuedMessagesToEditor({ abort: true });
+				void this.session.abortAndContinueWithQueuedMessages().catch((error: unknown) => {
+					this.showError(
+						`Failed to continue queued messages: ${error instanceof Error ? error.message : String(error)}`,
+					);
+				});
 			} else if (this.session.isBashRunning) {
 				this.session.abortBash();
 			} else if (this.isBashMode) {
@@ -4476,6 +4481,13 @@ export class InteractiveMode {
 							? theme.fg("error", "⏵⏵ skip permissions ")
 							: theme.fg("warning", "⏵⏵ auto ");
 		this.defaultEditor.setModeIndicator(indicator);
+		if (
+			this.editor !== this.defaultEditor &&
+			"setModeIndicator" in this.editor &&
+			typeof this.editor.setModeIndicator === "function"
+		) {
+			this.editor.setModeIndicator(indicator);
+		}
 		this.ui.requestRender();
 	}
 
