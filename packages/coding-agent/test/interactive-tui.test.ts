@@ -1,9 +1,11 @@
 import type { Component, Terminal, TUI } from "@earendil-works/pi-tui";
 import { Container, getKeybindings, isViewportTUI, ScrollView, setKeybindings, Text } from "@earendil-works/pi-tui";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { defaultEditorTheme } from "../../tui/test/test-themes.ts";
 import { VirtualTerminal } from "../../tui/test/virtual-terminal.ts";
 import { KeybindingsManager } from "../src/core/keybindings.ts";
 import type { FullscreenExitOutput, TuiMode } from "../src/core/settings-manager.ts";
+import { CustomEditor } from "../src/modes/interactive/components/custom-editor.ts";
 import {
 	BranchSummaryStatusIndicator,
 	CompactionStatusIndicator,
@@ -166,6 +168,37 @@ describe("createInteractiveTui", () => {
 
 		expect(stableUi.mode).toBe("fullscreen");
 		expect([terminal.startCount, terminal.stopCount]).toEqual([2, 2]);
+	});
+});
+
+describe("InteractiveMode permission indicator", () => {
+	it("updates the visible custom editor", () => {
+		initTheme("dark");
+		const ui = createInteractiveTui({
+			tuiMode: "regular",
+			showHardwareCursor: false,
+			logDirectory: "/tmp",
+			terminal: new RecordingTerminal(),
+		});
+		const keybindings = new KeybindingsManager();
+		const defaultEditor = new CustomEditor(ui, defaultEditorTheme, keybindings);
+		const customEditor = new CustomEditor(ui, defaultEditorTheme, keybindings);
+		const requestRender = vi.spyOn(ui, "requestRender");
+		const context = {
+			permissionMode: "read-only",
+			defaultEditor,
+			editor: customEditor,
+			ui,
+		};
+		const prototype = InteractiveMode.prototype as unknown as {
+			updatePermissionModeIndicator(this: typeof context): void;
+		};
+
+		prototype.updatePermissionModeIndicator.call(context);
+
+		expect(defaultEditor.render(80)[0]).toContain("read only");
+		expect(customEditor.render(80)[0]).toContain("read only");
+		expect(requestRender).toHaveBeenCalledOnce();
 	});
 });
 
