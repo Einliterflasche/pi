@@ -35,8 +35,13 @@
 - Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
 - Added an optional installer-managed VoxType extension for hold-Space voice dictation in terminals with key-release support.
 
+### Fixed
+
+- Fixed permission mode indicators remaining on the hidden default editor when an extension installs a custom editor.
+
 ### Breaking Changes
 
+- Changed steering and follow-up queues to batch all pending messages by default, and changed interruption to continue immediately with the queued batch instead of restoring it to the editor.
 - Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
 
 ## [1.0.0] - 2026-10-01
