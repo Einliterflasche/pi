@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added negotiated Kitty keyboard-protocol flag reporting so clients can require key-release support safely.
+
 ## [0.85.1] - 2026-09-05
 
 ### Added
