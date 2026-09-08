@@ -49,18 +49,19 @@
 ### Added
 
 - Added `setImageTranscoder()`, which lets `Image` convert JPEG, GIF, and WebP images to PNG for the Kitty graphics protocol ([#10292](https://github.com/earendil-works/pi/issues/10292))
+- Added negotiated Kitty keyboard-protocol flag reporting so clients can require key-release support safely.
 
 ### Fixed
 
 - Fixed non-PNG images rendering as nothing on Kitty-protocol terminals: without a registered transcoder, or when conversion fails, `Image` now shows its text fallback ([#10292](https://github.com/earendil-works/pi/issues/10292))
 - Fixed fullscreen Kitty images collapsing to a one-row strip after scrolling in WezTerm ([#10319](https://github.com/earendil-works/pi/issues/10319)).
+- Fixed visual updates made by terminal input listeners remaining hidden when the listener consumes the input.
 
 ## [1.0.0] - 2026-10-01
 
 ### Added
 
 - Added `TuiAltScreen.getScreenLines()`, which returns the lines of the last rendered frame.
-- Added negotiated Kitty keyboard-protocol flag reporting so clients can require key-release support safely.
 
 ### Fixed
 
