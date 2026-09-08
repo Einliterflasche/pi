@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
+
 ### Added
 
 - Added image generation to `ModelRuntime`: `generateImages()` with runtime-resolved auth (stored credentials, OAuth, runtime API keys, `models.json` headers), plus `getModelsOfType()`, `getModelOfType()`, `getAvailableOfType()`, `getAllModels()`, and `getAllAvailable()`. OpenRouter image models are listed under the `openrouter` provider and share its credential; an upstream ID can have separate chat and image entries. `models.json` providers and extension registrations without a model list keep built-in image generation. Extension model lists can include discriminated chat, image, and classifier entries with operation implementations; when supplied, they replace the provider catalog across every operation. Chat-facing reads (`getModels()`, `getAvailableSnapshot()`, the model picker) are unchanged.
@@ -9,6 +13,14 @@
 - Added `types=chat,image,classifier` to pi.dev model catalog requests so remote refreshes overlay every supported model type; entries of unknown model types are ignored.
 - Added the `provider_stream_event` extension event for observing parsed provider events before normalization, with an opt-in `/debug-provider` example viewer ([#9784](https://github.com/earendil-works/pi/issues/9784)).
 - Added a show/hide toggle (`H`) in HTML exports for custom messages marked `display: false`. Messages remain hidden by default and can also be revealed from the sidebar ([#8896](https://github.com/earendil-works/pi/issues/8896)).
+- Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
+- Added Zellij-aware `/fork`, opening persisted forks in a new pane in the same tab while keeping the original session active.
+- Added strict and classifier-backed read-only permission modes with distinct mode indicators.
+- Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
+- Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
+- Added named OpenRouter routing profiles via the `openRouterRoutingProfiles` setting, cycleable at runtime with `alt+a` (`app.routing.cycle`) and shown in the footer; built-in `fast` and `cheap` profiles apply when unset, and the active profile overrides per-model routing for the current session.
+- Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
+- Added an optional installer-managed VoxType extension for hold-Space voice dictation in terminals with key-release support.
 
 ### Fixed
 
@@ -196,20 +208,6 @@
 
 - Added GPT-6 Astra for OpenAI API keys and OpenAI Codex subscriptions.
 - Added five-times-faster mouse wheel scrolling while holding Alt in fullscreen mode ([#9166](https://github.com/earendil-works/pi/pull/9166) by [@xl0](https://github.com/xl0)).
-
-### Breaking Changes
-
-- Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
-
-### Added
-
-- Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
-- Added Zellij-aware `/fork`, opening persisted forks in a new pane in the same tab while keeping the original session active.
-- Added strict and classifier-backed read-only permission modes with distinct mode indicators.
-- Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
-- Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
-- Added named OpenRouter routing profiles via the `openRouterRoutingProfiles` setting, cycleable at runtime with `alt+a` (`app.routing.cycle`) and shown in the footer; built-in `fast` and `cheap` profiles apply when unset, and the active profile overrides per-model routing for the current session.
-- Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
 
 ### Fixed
 

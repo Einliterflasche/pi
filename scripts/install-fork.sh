@@ -13,6 +13,18 @@ else
     install_prefix="${HOME}/.local"
 fi
 
+extension_dir="$HOME/.pi/agent/extensions"
+extension_target="$extension_dir/voxtype-push-to-talk"
+target_dir="$install_prefix/lib/pi-fork"
+target_bin="$install_prefix/bin/pi"
+extension_source="$target_dir/node_modules/@earendil-works/pi-coding-agent/examples/extensions/voxtype-push-to-talk"
+if [[ -e "$extension_target" || -L "$extension_target" ]]; then
+    if [[ ! -L "$extension_target" || "$(readlink "$extension_target")" != "$extension_source" ]]; then
+        echo "Cannot install managed VoxType extension over existing path: $extension_target" >&2
+        exit 1
+    fi
+fi
+
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/pi-fork-install.XXXXXX")"
 trap 'rm -rf "$work_dir"' EXIT
 release_dir="$work_dir/release"
@@ -74,9 +86,6 @@ EOF
 npm install --prefix "$stage_dir" --omit=dev --ignore-scripts
 rm "$stage_dir"/*.tgz
 
-target_dir="$install_prefix/lib/pi-fork"
-target_bin="$install_prefix/bin/pi"
-
 install_files() {
     mkdir -p "$install_prefix/lib" "$install_prefix/bin"
     rm -rf "$target_dir"
@@ -99,5 +108,9 @@ else
     exit 1
 fi
 
+mkdir -p "$extension_dir"
+ln -sfn "$extension_source" "$extension_target"
+
 "$target_bin" --version
 echo "Installed fork: $target_bin"
+echo "Installed VoxType extension: $extension_target"

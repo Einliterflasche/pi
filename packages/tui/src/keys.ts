@@ -23,6 +23,7 @@
 // =============================================================================
 
 let _kittyProtocolActive = false;
+let _kittyProtocolFlags = 0;
 
 /**
  * Set the global Kitty keyboard protocol state.
@@ -30,6 +31,13 @@ let _kittyProtocolActive = false;
  */
 export function setKittyProtocolActive(active: boolean): void {
 	_kittyProtocolActive = active;
+	if (!active) _kittyProtocolFlags = 0;
+}
+
+/** Store the Kitty progressive-enhancement flags reported by the terminal. */
+export function setKittyProtocolFlags(flags: number): void {
+	_kittyProtocolFlags = flags;
+	_kittyProtocolActive = flags !== 0;
 }
 
 /**
@@ -37,6 +45,11 @@ export function setKittyProtocolActive(active: boolean): void {
  */
 export function isKittyProtocolActive(): boolean {
 	return _kittyProtocolActive;
+}
+
+/** Query whether the terminal reports press, repeat, and release event types. */
+export function supportsKeyReleaseEvents(): boolean {
+	return (_kittyProtocolFlags & 2) !== 0;
 }
 
 // =============================================================================

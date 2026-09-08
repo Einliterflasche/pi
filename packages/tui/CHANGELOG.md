@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added negotiated Kitty keyboard-protocol flag reporting so clients can require key-release support safely.
+
 ### Fixed
 
 - Fixed `/skill` autocomplete appearing empty when loaded skill names did not contain the letters in `skill` ([#9944](https://github.com/earendil-works/pi/issues/9944)).
