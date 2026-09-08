@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { setKittyProtocolActive } from "./keys.ts";
+import { setKittyProtocolActive, setKittyProtocolFlags } from "./keys.ts";
 import { isNativeModifierPressed } from "./native-modifiers.ts";
 import { getNativePlatformHelper } from "./native-platform.ts";
 import { StdinBuffer } from "./stdin-buffer.ts";
@@ -273,13 +273,12 @@ export class ProcessTerminal implements Terminal {
 			this.pendingKeyboardProtocolDeviceAttributes -= 1;
 		}
 		if (negotiationSequence.type === "kitty-flags") {
+			setKittyProtocolFlags(negotiationSequence.flags);
 			if (negotiationSequence.flags !== 0) {
 				this.disableModifyOtherKeys();
-				if (!this._kittyProtocolActive) {
-					this._kittyProtocolActive = true;
-					setKittyProtocolActive(true);
-				}
+				this._kittyProtocolActive = true;
 			} else {
+				this._kittyProtocolActive = false;
 				this.enableModifyOtherKeys();
 			}
 			return true;

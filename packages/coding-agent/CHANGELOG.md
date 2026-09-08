@@ -24,6 +24,21 @@
 - Fixed a `codemode` script that prints in a loop crashing pi by running out of memory: a script fails once its output passes 16 Mi characters or 100000 items ([#10283](https://github.com/earendil-works/pi/issues/10283))
 - Fixed JPEG, GIF, and WebP images rendered by extensions through `Image` not appearing in Kitty, Ghostty, WezTerm, and Warp ([#10292](https://github.com/earendil-works/pi/issues/10292))
 
+### Added
+
+- Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
+- Added Zellij-aware `/fork`, opening persisted forks in a new pane in the same tab while keeping the original session active.
+- Added strict and classifier-backed read-only permission modes with distinct mode indicators.
+- Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
+- Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
+- Added named OpenRouter routing profiles via the `openRouterRoutingProfiles` setting, cycleable at runtime with `alt+a` (`app.routing.cycle`) and shown in the footer; built-in `fast` and `cheap` profiles apply when unset, and the active profile overrides per-model routing for the current session.
+- Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
+- Added an optional installer-managed VoxType extension for hold-Space voice dictation in terminals with key-release support.
+
+### Breaking Changes
+
+- Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
+
 ## [1.0.0] - 2026-10-01
 
 ### New Features
@@ -388,20 +403,6 @@
 
 - Added GPT-6 Astra for OpenAI API keys and OpenAI Codex subscriptions.
 - Added five-times-faster mouse wheel scrolling while holding Alt in fullscreen mode ([#9166](https://github.com/earendil-works/pi/pull/9166) by [@xl0](https://github.com/xl0)).
-
-### Breaking Changes
-
-- Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
-
-### Added
-
-- Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
-- Added Zellij-aware `/fork`, opening persisted forks in a new pane in the same tab while keeping the original session active.
-- Added strict and classifier-backed read-only permission modes with distinct mode indicators.
-- Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
-- Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
-- Added named OpenRouter routing profiles via the `openRouterRoutingProfiles` setting, cycleable at runtime with `alt+a` (`app.routing.cycle`) and shown in the footer; built-in `fast` and `cheap` profiles apply when unset, and the active profile overrides per-model routing for the current session.
-- Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
 
 ### Fixed
 

@@ -16,6 +16,7 @@
 ### Added
 
 - Added `TuiAltScreen.getScreenLines()`, which returns the lines of the last rendered frame.
+- Added negotiated Kitty keyboard-protocol flag reporting so clients can require key-release support safely.
 
 ### Fixed
 
