@@ -3,8 +3,8 @@ import { DEFAULT_MAX_AGENT_RETRY_DELAY_MS } from "@earendil-works/pi-ai/utils/re
 /** Runtime defaults shared by settings accessors and the published JSON Schema. */
 export const SETTINGS_DEFAULTS = {
 	transport: "auto",
-	steeringMode: "one-at-a-time",
-	followUpMode: "one-at-a-time",
+	steeringMode: "all",
+	followUpMode: "all",
 	compaction: {
 		enabled: true,
 		reserveTokens: 16384,

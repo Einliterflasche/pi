@@ -12,6 +12,10 @@
 
 - `streamProxy()` returns an `AssistantMessageEventStream`, so proxied responses get `durationMs` like direct ones
 
+### Breaking Changes
+
+- Changed steering and follow-up queues to batch all pending messages by default.
+
 ## [1.0.4] - 2026-10-05
 
 ## [1.0.3] - 2026-10-05
