@@ -105,6 +105,8 @@ export {
 	matchesKey,
 	parseKey,
 	setKittyProtocolActive,
+	setKittyProtocolFlags,
+	supportsKeyReleaseEvents,
 } from "./keys.ts";
 // LaTeX rendering
 export { type RenderLatexOptions, renderLatex } from "./latex.ts";
