@@ -1848,6 +1848,17 @@ ${JSON.stringify({
 	}
 
 	/**
+	 * Abort the current operation, then start a fresh run containing every queued message.
+	 */
+	async abortAndContinueWithQueuedMessages(): Promise<void> {
+		const queuedMessages = this.agent.takeAllQueuedMessages();
+		await this.abort();
+		if (queuedMessages.length > 0) {
+			await this._runAgentPrompt(queuedMessages);
+		}
+	}
+
+	/**
 	 * Abort current operation and wait for agent to become idle.
 	 */
 	async abort(): Promise<void> {

@@ -196,11 +196,11 @@ const agent = new Agent({
   // Transform context before convertToLlm (for pruning, compaction)
   transformContext: async (messages, signal) => pruneOldMessages(messages),
 
-  // Steering mode: "one-at-a-time" (default) or "all"
-  steeringMode: "one-at-a-time",
+  // Steering mode: "all" (default) or "one-at-a-time"
+  steeringMode: "all",
 
-  // Follow-up mode: "one-at-a-time" (default) or "all"
-  followUpMode: "one-at-a-time",
+  // Follow-up mode: "all" (default) or "one-at-a-time"
+  followUpMode: "all",
 
   // Required stream function
   streamFn: models.streamSimple.bind(models),
@@ -343,8 +343,8 @@ unsubscribe();
 Steering messages let you interrupt the agent while tools are running. Follow-up messages let you queue work after the agent would otherwise stop.
 
 ```typescript
-agent.steeringMode = "one-at-a-time";
-agent.followUpMode = "one-at-a-time";
+agent.steeringMode = "all";
+agent.followUpMode = "all";
 
 // While agent is running tools
 agent.steer({

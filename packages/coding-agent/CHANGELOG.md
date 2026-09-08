@@ -5,6 +5,7 @@
 ### Breaking Changes
 
 - Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
+- Changed steering and follow-up queues to batch all pending messages by default, and changed interruption to continue immediately with the queued batch instead of restoring it to the editor.
 
 ### Added
 
@@ -31,6 +32,7 @@
 - Fixed premature missing-model errors after login by waiting for catalog discovery. Radius now defaults to `balanced`, falling back to the first available Radius model when needed.
 - Fixed fullscreen mode reserving a blank row for custom footers that render zero rows ([#8919](https://github.com/earendil-works/pi/issues/8919)).
 - Fixed extension tools without parameter schemas to be rejected during registration instead of breaking provider requests ([#9300](https://github.com/earendil-works/pi/issues/9300)).
+- Fixed permission mode indicators remaining on the hidden default editor when an extension installs a custom editor.
 
 ## [0.85.1] - 2026-09-05
 

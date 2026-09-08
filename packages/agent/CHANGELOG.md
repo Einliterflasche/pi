@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- Changed steering and follow-up queues to batch all pending messages by default.
+
 ## [0.85.1] - 2026-09-05
 
 ## [0.85.0] - 2026-09-04

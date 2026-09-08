@@ -153,6 +153,12 @@ class PendingMessageQueue {
 		return [first];
 	}
 
+	drainAll(): AgentMessage[] {
+		const drained = this.messages;
+		this.messages = [];
+		return drained;
+	}
+
 	clear(): void {
 		this.messages = [];
 	}
@@ -228,8 +234,8 @@ export class Agent {
 		this.shouldStopAfterTurn = runtimeOptions.shouldStopAfterTurn;
 		this.prepareNextTurn = runtimeOptions.prepareNextTurn;
 		this.prepareNextTurnWithContext = runtimeOptions.prepareNextTurnWithContext;
-		this.steeringQueue = new PendingMessageQueue(runtimeOptions.steeringMode ?? "one-at-a-time");
-		this.followUpQueue = new PendingMessageQueue(runtimeOptions.followUpMode ?? "one-at-a-time");
+		this.steeringQueue = new PendingMessageQueue(runtimeOptions.steeringMode ?? "all");
+		this.followUpQueue = new PendingMessageQueue(runtimeOptions.followUpMode ?? "all");
 		this.sessionId = runtimeOptions.sessionId;
 		this.thinkingBudgets = runtimeOptions.thinkingBudgets;
 		this.transport = runtimeOptions.transport ?? "auto";
@@ -303,6 +309,11 @@ export class Agent {
 	clearAllQueues(): void {
 		this.clearSteeringQueue();
 		this.clearFollowUpQueue();
+	}
+
+	/** Remove and return every queued message, with steering messages first. */
+	takeAllQueuedMessages(): AgentMessage[] {
+		return [...this.steeringQueue.drainAll(), ...this.followUpQueue.drainAll()];
 	}
 
 	/** Returns true when either queue still contains pending messages. */
