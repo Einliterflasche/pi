@@ -43,6 +43,7 @@
 ### Added
 
 - Added model image-input limit and cache-safe resize metadata to the generated catalog ([#9631](https://github.com/earendil-works/pi/issues/9631)).
+- Added `StreamOptions.openRouterRouting`, a request-level OpenRouter routing override merged over the model's `openRouterRouting` compat for OpenRouter targets.
 
 ### Fixed
 
@@ -105,10 +106,6 @@
 ### Added
 
 - Added GPT-6 Astra for OpenAI API keys and OpenAI Codex subscriptions.
-
-### Added
-
-- Added `StreamOptions.openRouterRouting`, a request-level OpenRouter routing override merged over the model's `openRouterRouting` compat for OpenRouter targets.
 
 ### Fixed
 
