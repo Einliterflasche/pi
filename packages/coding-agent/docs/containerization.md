@@ -1,6 +1,6 @@
 # Containerization
 
-Pi runs with all permissions by default, but in some cases, you will want to have more control over what directories Pi can write to and which accesses it has.
+Pi is not operating-system sandboxed by default. Interactive tool calls start under `auto` permission review, but approved tools still run with the Pi process's filesystem and network access. Use isolation when you need stronger limits on what directories or services those tools can access.
 
 There are two general options. You can either
 1. run the whole `pi` process inside an isolated environment, or
