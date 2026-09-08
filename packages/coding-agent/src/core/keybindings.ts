@@ -87,6 +87,10 @@ const APP_KEYBINDINGS = {
 		defaultKeys: windowsKeybindings ? "alt+v" : "ctrl+v",
 		description: "Paste files on macOS, images, or text from clipboard",
 	},
+	"app.voice.dictate": {
+		defaultKeys: "space",
+		description: "Hold to dictate when a voice input extension is available",
+	},
 	"app.session.new": { defaultKeys: [], description: "Start a new session" },
 	"app.session.tree": { defaultKeys: [], description: "Open session tree" },
 	"app.session.fork": { defaultKeys: [], description: "Fork current session" },

@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it, mock } from "node:test";
-import { setKittyProtocolActive } from "../src/keys.ts";
+import { setKittyProtocolActive, supportsKeyReleaseEvents } from "../src/keys.ts";
 import {
 	normalizeAppleTerminalInput,
 	normalizeNativeShiftEnterInput,
@@ -155,6 +155,26 @@ describe("ProcessTerminal Kitty keyboard protocol negotiation", () => {
 			assert.equal(harness.writes.includes("\x1b[>4;0m"), false);
 		} finally {
 			harness.cleanup();
+		}
+	});
+
+	it("tracks whether negotiated flags include key release events", () => {
+		const harness = setupNegotiation();
+		try {
+			harness.send("\x1b[?1u");
+			assert.equal(supportsKeyReleaseEvents(), false);
+		} finally {
+			harness.cleanup();
+		}
+
+		const releaseHarness = setupNegotiation();
+		try {
+			releaseHarness.send("\x1b[?7u");
+			assert.equal(supportsKeyReleaseEvents(), true);
+			releaseHarness.cleanup();
+			assert.equal(supportsKeyReleaseEvents(), false);
+		} finally {
+			releaseHarness.cleanup();
 		}
 	});
 
