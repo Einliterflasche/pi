@@ -26,6 +26,8 @@ function createSession(options: {
 	toolUsage?: AssistantUsage;
 	usingSubscription?: boolean;
 	routedModel?: { model: { id: string }; thinkingLevel?: string };
+	routingProfile?: string;
+	routingProfilesSupported?: boolean;
 }): AgentSession {
 	const usage = options.usage;
 	const entries: Array<Record<string, unknown>> = [];
@@ -87,8 +89,8 @@ function createSession(options: {
 		modelRuntime: {
 			isUsingSubscription: () => options.usingSubscription ?? false,
 		},
-		getActiveRoutingProfile: () => undefined,
-		isRoutingProfilesSupported: () => true,
+		getActiveRoutingProfile: () => options.routingProfile,
+		isRoutingProfilesSupported: () => options.routingProfilesSupported ?? true,
 	};
 
 	return session as unknown as AgentSession;
@@ -241,5 +243,17 @@ describe("FooterComponent width handling", () => {
 		expect(statsLine).not.toContain("CH");
 		expect(statsLine).not.toContain("$0.001");
 		expect(statsLine).not.toContain("auto");
+	});
+
+	it("hides a retained routing profile when the current model does not use OpenRouter", () => {
+		const session = createSession({
+			sessionName: "",
+			provider: "anthropic",
+			routingProfile: "fast",
+			routingProfilesSupported: false,
+		});
+		const footer = new FooterComponent(session, createFooterData(1));
+
+		expect(stripAnsi(footer.render(120)[1])).not.toContain("fast");
 	});
 });
