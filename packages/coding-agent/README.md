@@ -22,6 +22,8 @@ Use `--permission-mode` with `manual`, `read-only`, `auto-read-only`, `auto`, or
 
 The bundled `/goal <objective>` command continues work with an independent evaluator that uses the active model. See [Goal loops](docs/usage.md#goal-loops) for optional limits and pause behavior.
 
+Queued steering and follow-up messages arrive as a batch by default. Escape aborts the current turn and continues immediately with queued messages. See [Interactive use](docs/usage.md#change-direction) and [Settings](docs/settings.md#interaction).
+
 ## Getting started
 
 Install the command-line interface with npm:

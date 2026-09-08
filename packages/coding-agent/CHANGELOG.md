@@ -4,6 +4,8 @@
 
 ### Breaking Changes
 
+- Changed steering and follow-up queues to batch all pending messages by default, and changed interruption to continue immediately with the queued batch instead of restoring it to the editor.
+
 - Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
 
 ### Added
@@ -26,6 +28,7 @@
 
 - Fixed X11 clipboard text being misidentified as an image when the clipboard owner accepts unadvertised image targets ([#9786](https://github.com/earendil-works/pi/issues/9786)).
 - Prevented managed git packages from automatically installing Pi peer dependencies and added warnings for extension packages that list host-provided modules in `dependencies` ([#9863](https://github.com/earendil-works/pi/issues/9863)).
+- Fixed permission mode indicators remaining on the hidden default editor when an extension installs a custom editor.
 
 ## [0.87.1] - 2026-09-22
 

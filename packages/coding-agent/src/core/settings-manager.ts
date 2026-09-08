@@ -762,7 +762,7 @@ export class SettingsManager {
 	}
 
 	getSteeringMode(): "all" | "one-at-a-time" {
-		return this.settings.steeringMode || "one-at-a-time";
+		return this.settings.steeringMode || "all";
 	}
 
 	setSteeringMode(mode: "all" | "one-at-a-time"): void {
@@ -772,7 +772,7 @@ export class SettingsManager {
 	}
 
 	getFollowUpMode(): "all" | "one-at-a-time" {
-		return this.settings.followUpMode || "one-at-a-time";
+		return this.settings.followUpMode || "all";
 	}
 
 	setFollowUpMode(mode: "all" | "one-at-a-time"): void {

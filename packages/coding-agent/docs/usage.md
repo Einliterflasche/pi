@@ -56,7 +56,7 @@ You can send more input while Pi is working:
 | Return queued messages to the editor | Press `Alt+Up` |
 | Stop the current task | Press `Escape` |
 
-A message sent with `Enter` waits until the current response and its tool calls finish, then guides the next response. A follow-up sent with `Alt+Enter` waits until Pi finishes the current task. Aborting returns queued messages to the editor.
+A message sent with `Enter` waits until the current response and its tool calls finish, then guides the next response. A follow-up sent with `Alt+Enter` waits until Pi finishes the current task. Escape aborts the current turn and continues immediately with queued messages. Pi delivers pending messages as a batch by default. Set `steeringMode` or `followUpMode` to `"one-at-a-time"` to deliver them separately.
 
 Windows Terminal reserves some Alt shortcuts. See [Terminal Setup](terminal-setup.md) for the Windows alternatives.
 

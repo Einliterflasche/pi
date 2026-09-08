@@ -51,8 +51,8 @@ On an OpenRouter model, `alt+a` cycles from off to each profile and back to off.
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
-| `steeringMode` | `"all" \| "one-at-a-time"` | `"one-at-a-time"` | How queued steering messages are delivered. |
-| `followUpMode` | `"all" \| "one-at-a-time"` | `"one-at-a-time"` | How queued follow-up messages are delivered. |
+| `steeringMode` | `"all" \| "one-at-a-time"` | `"all"` | How queued steering messages are delivered. |
+| `followUpMode` | `"all" \| "one-at-a-time"` | `"all"` | How queued follow-up messages are delivered. |
 | `externalEditor` | string | `$VISUAL`, `$EDITOR`, then platform default | Command opened by the external-editor keybinding. |
 | `doubleEscapeAction` | `"tree" \| "fork" \| "none"` | `"tree"` | Action for double Escape with an empty editor. |
 | `treeFilterMode` | `"default" \| "no-tools" \| "user-only" \| "labeled-only" \| "all"` | `"default"` | Initial filter used by `/tree`. |
