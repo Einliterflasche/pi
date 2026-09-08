@@ -6,6 +6,10 @@
 
 - Added negotiated Kitty keyboard-protocol flag reporting so clients can require key-release support safely.
 
+### Fixed
+
+- Fixed visual updates made by terminal input listeners remaining hidden when the listener consumes the input.
+
 ## [0.85.1] - 2026-09-05
 
 ### Added
