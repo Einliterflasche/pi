@@ -5,6 +5,7 @@
 ### Added
 
 - Enabled native deferred tool loading for Fireworks Messages models. Use `ToolSearch` or `tool_search` as the loader name for prompt-prefix deferral ([#9323](https://github.com/earendil-works/pi/issues/9323)).
+- Added `StreamOptions.openRouterRouting`, a request-level OpenRouter routing override merged over the model's `openRouterRouting` compat for OpenRouter targets.
 
 ### Fixed
 
@@ -24,10 +25,6 @@
 ### Added
 
 - Added GPT-6 Astra for OpenAI API keys and OpenAI Codex subscriptions.
-
-### Added
-
-- Added `StreamOptions.openRouterRouting`, a request-level OpenRouter routing override merged over the model's `openRouterRouting` compat for OpenRouter targets.
 
 ### Fixed
 

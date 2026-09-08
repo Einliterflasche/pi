@@ -304,11 +304,11 @@ When multiple sources specify a session directory, precedence is `--session-dir`
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `openRouterRoutingProfiles` | Record<string, OpenRouterRouting> | - | Named OpenRouter routing profiles to cycle with `alt+a` (`app.routing.cycle`); the active profile shows in the footer |
+| `openRouterRoutingProfiles` | Record<string, OpenRouterRouting> | Built-in `fast` and `cheap` profiles | Named OpenRouter routing profiles to cycle with `alt+a` (`app.routing.cycle`); a non-empty configured set replaces the built-in profiles |
 
-Each profile value is an [OpenRouter routing object](https://openrouter.ai/docs/guides/routing/provider-selection) sent as the request's `provider` field, merged over any per-model `openRouterRouting` compat. Profiles apply to whatever OpenRouter model is active; the selection is session-scoped and cycles off -> first profile -> ... -> off.
+Each profile value is an [OpenRouter routing object](https://openrouter.ai/docs/guides/routing/provider-selection) sent as the request's `provider` field, merged over any per-model `openRouterRouting` compat. The built-in `fast` profile optimizes throughput and latency, while `cheap` optimizes price.
 
-Named OpenRouter routing profiles cycleable with `alt+a` (`app.routing.cycle`); the active profile shows in the footer. Defaults to built-in profiles `fast` (throughput/latency-optimized) and `cheap` (price-optimized); setting this replaces the defaults.
+On an OpenRouter model, `alt+a` cycles from off to each profile and back to off. The active profile appears in the footer and applies to requests from the current OpenRouter model. The selection exists only in memory for the current session and is never written to settings or session files. Switching to a non-OpenRouter model retains the selection but hides it and does not apply it; returning to an OpenRouter model restores it.
 
 ```json
 {

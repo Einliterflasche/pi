@@ -1898,12 +1898,6 @@ ${JSON.stringify({
 		const thinkingLevel = this._getThinkingLevelForModelSwitch(model);
 		this.agent.state.model = model;
 		this.sessionManager.appendModelChange(model.provider, model.id);
-
-		// Routing profiles only apply to OpenRouter models; clear the selection when
-		// switching away so a later switch back does not silently restore it.
-		if (this._activeRoutingProfile && !this.isRoutingProfilesSupported()) {
-			this._activeRoutingProfile = undefined;
-		}
 		if (options.persist) {
 			this.settingsManager.setDefaultModelAndProvider(model.provider, model.id);
 			this._addPersistedDefaultToNonEmptyScope(model);
@@ -2114,10 +2108,12 @@ ${JSON.stringify({
 
 	/**
 	 * Routing override for the active profile, merged over model compat routing
-	 * by the openai-completions adapter. Undefined when no profile is active.
+	 * by the openai-completions adapter. Undefined when the current model does not
+	 * use OpenRouter or no profile is active. The selection remains session-scoped
+	 * while another provider is active so it can be restored on return.
 	 */
 	getActiveRoutingOverride(): OpenRouterRouting | undefined {
-		if (!this._activeRoutingProfile) return undefined;
+		if (!this.isRoutingProfilesSupported() || !this._activeRoutingProfile) return undefined;
 		return this.getRoutingProfiles()[this._activeRoutingProfile];
 	}
 
