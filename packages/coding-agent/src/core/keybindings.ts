@@ -31,6 +31,7 @@ export interface AppKeybindings {
 	"app.message.followUp": true;
 	"app.message.dequeue": true;
 	"app.clipboard.pasteImage": true;
+	"app.voice.dictate": true;
 	"app.session.new": true;
 	"app.session.tree": true;
 	"app.session.fork": true;
@@ -155,6 +156,10 @@ export const KEYBINDINGS = {
 	"app.clipboard.pasteImage": {
 		defaultKeys: windowsKeybindings ? "alt+v" : "ctrl+v",
 		description: "Paste image from clipboard (text fallback)",
+	},
+	"app.voice.dictate": {
+		defaultKeys: "space",
+		description: "Hold to dictate when a voice input extension is available",
 	},
 	"app.session.new": { defaultKeys: [], description: "Start a new session" },
 	"app.session.tree": { defaultKeys: [], description: "Open session tree" },
