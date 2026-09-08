@@ -137,6 +137,26 @@ describe("TUI render scheduling", () => {
 		assert.deepStrictEqual(component.lines, ["typed"]);
 		tui.stop();
 	});
+
+	it("renders mutations made by an input listener that consumes the event", async () => {
+		const terminal = new VirtualTerminal(40, 10);
+		const tui: TUI = new TuiMainScreen(terminal);
+		const component = new TestComponent();
+		component.lines = ["initial"];
+		tui.addChild(component);
+		tui.addInputListener(() => {
+			component.lines = ["handled"];
+			return { consume: true };
+		});
+		tui.start();
+		await terminal.waitForRender();
+
+		terminal.sendInput("input");
+		await terminal.waitForRender();
+
+		assert.strictEqual(terminal.getViewport()[0], "handled");
+		tui.stop();
+	});
 });
 
 describe("TUI debug logging", () => {
