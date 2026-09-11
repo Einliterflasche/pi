@@ -30,7 +30,7 @@ trap 'rm -rf "$work_dir"' EXIT
 release_dir="$work_dir/release"
 stage_dir="$work_dir/stage"
 
-for package_dir in packages/tui packages/chord packages/telemetry packages/ai packages/agent packages/protocol packages/client packages/coding-agent; do
+for package_dir in packages/tui packages/chord packages/telemetry packages/ai packages/agent packages/protocol packages/client packages/server packages/coding-agent; do
     npm --prefix "$package_dir" run clean
 done
 npm --prefix packages/tui run build
@@ -40,10 +40,11 @@ npm --prefix packages/telemetry run build
 npm --prefix packages/agent run build
 npm --prefix packages/protocol run build
 npm --prefix packages/client run build
+npm --prefix packages/server run build
 npm --prefix packages/coding-agent run build
 
 mkdir -p "$release_dir/tarballs"
-for package_dir in packages/ai packages/tui packages/agent packages/coding-agent; do
+for package_dir in packages/ai packages/tui packages/agent packages/chord packages/protocol packages/client packages/server packages/coding-agent; do
     (cd "$package_dir" && npm pack --json --pack-destination "$release_dir/tarballs" >/dev/null)
 done
 
@@ -63,6 +64,10 @@ find_tarball() {
 ai_tarball="$(find_tarball 'earendil-works-pi-ai-*.tgz')"
 tui_tarball="$(find_tarball 'earendil-works-pi-tui-*.tgz')"
 agent_tarball="$(find_tarball 'earendil-works-pi-agent-core-*.tgz')"
+chord_tarball="$(find_tarball 'earendil-works-chord-*.tgz')"
+server_tarball="$(find_tarball 'earendil-works-pi-server-*.tgz')"
+protocol_tarball="$(find_tarball 'earendil-works-pi-protocol-*.tgz')"
+client_tarball="$(find_tarball 'earendil-works-pi-client-*.tgz')"
 cli_tarball="$(find_tarball 'earendil-works-pi-coding-agent-*.tgz')"
 
 cat > "$stage_dir/package.json" <<EOF
@@ -72,12 +77,20 @@ cat > "$stage_dir/package.json" <<EOF
     "@earendil-works/pi-ai": "file:./$ai_tarball",
     "@earendil-works/pi-tui": "file:./$tui_tarball",
     "@earendil-works/pi-agent-core": "file:./$agent_tarball",
+    "@earendil-works/chord": "file:./$chord_tarball",
+    "@earendil-works/pi-server": "file:./$server_tarball",
+    "@earendil-works/pi-protocol": "file:./$protocol_tarball",
+    "@earendil-works/pi-client": "file:./$client_tarball",
     "@earendil-works/pi-coding-agent": "file:./$cli_tarball"
   },
   "overrides": {
     "@earendil-works/pi-ai": "file:./$ai_tarball",
     "@earendil-works/pi-tui": "file:./$tui_tarball",
     "@earendil-works/pi-agent-core": "file:./$agent_tarball",
+    "@earendil-works/chord": "file:./$chord_tarball",
+    "@earendil-works/pi-server": "file:./$server_tarball",
+    "@earendil-works/pi-protocol": "file:./$protocol_tarball",
+    "@earendil-works/pi-client": "file:./$client_tarball",
     "@earendil-works/pi-coding-agent": "file:./$cli_tarball"
   }
 }
