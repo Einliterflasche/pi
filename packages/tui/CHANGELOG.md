@@ -55,7 +55,7 @@
 
 - Fixed non-PNG images rendering as nothing on Kitty-protocol terminals: without a registered transcoder, or when conversion fails, `Image` now shows its text fallback ([#10292](https://github.com/earendil-works/pi/issues/10292))
 - Fixed fullscreen Kitty images collapsing to a one-row strip after scrolling in WezTerm ([#10319](https://github.com/earendil-works/pi/issues/10319)).
-- Fixed visual updates made by terminal input listeners remaining hidden when the listener consumes the input.
+- Fixed visual updates made by terminal input listeners remaining hidden when the listener consumes the input and returns `render: true`, without repainting consumed no-op input.
 
 ## [1.0.0] - 2026-10-01
 
