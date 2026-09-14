@@ -221,9 +221,9 @@ export class FooterComponent implements Component {
 			rightSideWithoutProvider += ` → ${routed.model.id}${level}`;
 		}
 
-		// Add active OpenRouter routing profile (only meaningful for OpenRouter models)
+		// Add the routing profile currently applied to this model.
 		if (this.session.isRoutingProfilesSupported()) {
-			const routingProfile = this.session.getActiveRoutingProfile();
+			const routingProfile = this.session.getAppliedRoutingProfile();
 			if (routingProfile) {
 				rightSideWithoutProvider = `${rightSideWithoutProvider} • ${routingProfile}`;
 			}
