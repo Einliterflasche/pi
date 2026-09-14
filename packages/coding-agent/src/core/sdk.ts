@@ -325,6 +325,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		return {
 			...options,
 			openRouterRouting: sessionRef.current?.getActiveRoutingOverride(),
+			serviceTier: sessionRef.current?.getActiveServiceTier(),
 			timeoutMs: options.timeoutMs ?? providerRetrySettings.timeoutMs ?? effectiveTimeoutMs,
 			websocketConnectTimeoutMs: options.websocketConnectTimeoutMs ?? settingsManager.getWebSocketConnectTimeoutMs(),
 			maxRetries: options.maxRetries ?? providerRetrySettings.maxRetries,

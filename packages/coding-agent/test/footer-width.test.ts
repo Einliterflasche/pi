@@ -89,7 +89,7 @@ function createSession(options: {
 		modelRuntime: {
 			isUsingSubscription: () => options.usingSubscription ?? false,
 		},
-		getActiveRoutingProfile: () => options.routingProfile,
+		getAppliedRoutingProfile: () => (options.routingProfilesSupported === false ? undefined : options.routingProfile),
 		isRoutingProfilesSupported: () => options.routingProfilesSupported ?? true,
 	};
 

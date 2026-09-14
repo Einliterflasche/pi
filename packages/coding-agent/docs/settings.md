@@ -24,15 +24,17 @@ Cache warming runs only when the model declares a cache lifetime and Pi estimate
 
 See [Choose a Model](models.md) for model selection and thinking controls.
 
-### OpenRouter Routing Profiles
+### Routing Profiles
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `openRouterRoutingProfiles` | Record<string, OpenRouterRouting> | Built-in `fast` and `cheap` profiles | Named OpenRouter routing profiles to cycle with `alt+a` (`app.routing.cycle`); a non-empty configured set replaces the built-in profiles |
+| `openRouterRoutingProfiles` | Record<string, OpenRouterRouting> | Built-in `fast` and `cheap` profiles | Named OpenRouter routing profiles to cycle with `alt+a` (`app.routing.cycle`); a non-empty configured set replaces the built-in OpenRouter profiles |
 
-Each profile value is an [OpenRouter routing object](https://openrouter.ai/docs/guides/routing/provider-selection) sent as the request's `provider` field, merged over any per-model `openRouterRouting` compat. The built-in `fast` profile optimizes throughput and latency, while `cheap` optimizes price.
+For OpenRouter, each profile value is an [OpenRouter routing object](https://openrouter.ai/docs/guides/routing/provider-selection) sent as the request's `provider` field, merged over any per-model `openRouterRouting` compat. The built-in `fast` profile optimizes throughput and latency, while `cheap` optimizes price.
 
-On an OpenRouter model, `alt+a` cycles from off to each profile and back to off. The active profile appears in the footer and applies to requests from the current OpenRouter model. The selection exists only in memory for the current session and is never written to settings or session files. Switching to a non-OpenRouter model retains the selection but hides it and does not apply it; returning to an OpenRouter model restores it.
+OpenAI Codex models provide one fixed profile: `fast`. It sends `service_tier: "priority"`; `openRouterRoutingProfiles` does not change this Codex profile.
+
+On a supported model, `alt+a` cycles from off through the available profiles and back to off. The applied profile appears in the footer. Selections are cached per provider/model only in memory for the current runtime; they are never written to settings or session files. Switching models restores the profile previously selected for that model during the runtime.
 
 ```json
 {
