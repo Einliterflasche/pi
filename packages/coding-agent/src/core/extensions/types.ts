@@ -43,6 +43,7 @@ import type {
 	OverlayHandle,
 	OverlayOptions,
 	TUI,
+	TuiInputListenerResult,
 } from "@earendil-works/pi-tui";
 import type { Static, TSchema } from "typebox";
 import type { Theme } from "../../modes/interactive/theme/theme.ts";
@@ -113,7 +114,7 @@ export interface ExtensionWidgetOptions {
 }
 
 /** Raw terminal input listener for extensions. */
-export type TerminalInputHandler = (data: string) => { consume?: boolean; data?: string } | undefined;
+export type TerminalInputHandler = (data: string) => TuiInputListenerResult;
 
 /** Working indicator configuration for the interactive streaming loader. */
 export interface WorkingIndicatorOptions {

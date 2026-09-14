@@ -9,7 +9,7 @@
 ### Fixed
 
 - Fixed fullscreen clipboard failures hiding actionable backend error messages behind a generic notice, and extended failure notices to five seconds ([#9618](https://github.com/earendil-works/pi/issues/9618)).
-- Fixed visual updates made by terminal input listeners remaining hidden when the listener consumes the input.
+- Fixed visual updates made by terminal input listeners remaining hidden when the listener consumes the input and returns `render: true`, without repainting consumed no-op input.
 
 ## [0.85.1] - 2026-09-05
 

@@ -135,7 +135,14 @@ export interface Component {
 	invalidate(): void;
 }
 
-export type TuiInputListenerResult = { consume?: boolean; data?: string } | undefined;
+export type TuiInputListenerResult =
+	| {
+			consume?: boolean;
+			data?: string;
+			/** Render immediately when this listener consumes input after mutating visible state. */
+			render?: boolean;
+	  }
+	| undefined;
 export type TuiInputListener = (data: string) => TuiInputListenerResult;
 type PendingOsc11BackgroundQuery = {
 	settled: boolean;
@@ -1016,7 +1023,7 @@ export abstract class TuiBase extends Container implements TUI {
 			for (const listener of this.inputListeners) {
 				const result = listener(current);
 				if (result?.consume) {
-					this.requestImmediateRender();
+					if (result.render) this.requestImmediateRender();
 					return;
 				}
 				if (result?.data !== undefined) {

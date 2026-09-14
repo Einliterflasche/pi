@@ -108,7 +108,7 @@ export default function voxtypePushToTalk(pi: ExtensionAPI): void {
 				return undefined;
 			}
 			controller.release();
-			return { consume: true };
+			return { consume: true, render: true };
 		});
 	});
 
