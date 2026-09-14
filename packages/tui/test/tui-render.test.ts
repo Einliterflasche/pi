@@ -146,7 +146,7 @@ describe("TUI render scheduling", () => {
 		tui.addChild(component);
 		tui.addInputListener(() => {
 			component.lines = ["handled"];
-			return { consume: true };
+			return { consume: true, render: true };
 		});
 		tui.start();
 		await terminal.waitForRender();
