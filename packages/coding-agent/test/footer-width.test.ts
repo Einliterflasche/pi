@@ -54,7 +54,7 @@ function createSession(options: {
 			getCwd: () => "/tmp/project",
 		},
 		getContextUsage: () => ({ contextWindow: 200_000, percent: 12.3 }),
-		getActiveRoutingProfile: () => options.routingProfile,
+		getAppliedRoutingProfile: () => (options.routingProfilesSupported === false ? undefined : options.routingProfile),
 		isRoutingProfilesSupported: () => options.routingProfilesSupported ?? true,
 	};
 
