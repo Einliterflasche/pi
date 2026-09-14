@@ -24,6 +24,7 @@
 - Added a `fast` routing profile for OpenAI Codex models that sends the priority service tier, with runtime-only profile selections cached per provider/model.
 - Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
 - Added an optional installer-managed VoxType extension for hold-Space voice dictation in terminals with key-release support.
+- Added an explicit `render` result option for extension terminal-input handlers that consume input after changing visible state.
 
 ### Fixed
 
