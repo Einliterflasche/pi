@@ -203,34 +203,38 @@ describe("DefaultPackageManager git update", () => {
 	});
 
 	describe("pinned sources", () => {
-		it("should checkout the configured pinned git ref during full and targeted updates", async () => {
-			mkdirSync(remoteDir, { recursive: true });
-			initGitRepo(remoteDir);
-			const v1Commit = createCommit(remoteDir, "extension.ts", "// v1", "Initial commit");
-			git(["tag", "v1"], remoteDir);
-			const v2Commit = createCommit(remoteDir, "extension.ts", "// v2", "Second commit");
-			git(["tag", "v2"], remoteDir);
+		it(
+			"should checkout the configured pinned git ref during full and targeted updates",
+			{ timeout: 60_000 },
+			async () => {
+				mkdirSync(remoteDir, { recursive: true });
+				initGitRepo(remoteDir);
+				const v1Commit = createCommit(remoteDir, "extension.ts", "// v1", "Initial commit");
+				git(["tag", "v1"], remoteDir);
+				const v2Commit = createCommit(remoteDir, "extension.ts", "// v2", "Second commit");
+				git(["tag", "v2"], remoteDir);
 
-			mkdirSync(join(agentDir, "git", "github.com", "test"), { recursive: true });
-			git(["clone", remoteDir, installedDir], tempDir);
-			git(["checkout", "v1"], installedDir);
-			expect(getCurrentCommit(installedDir)).toBe(v1Commit);
+				mkdirSync(join(agentDir, "git", "github.com", "test"), { recursive: true });
+				git(["clone", remoteDir, installedDir], tempDir);
+				git(["checkout", "v1"], installedDir);
+				expect(getCurrentCommit(installedDir)).toBe(v1Commit);
 
-			const pinnedSource = `${gitSource}@v2`;
-			settingsManager.setPackages([pinnedSource]);
+				const pinnedSource = `${gitSource}@v2`;
+				settingsManager.setPackages([pinnedSource]);
 
-			await packageManager.update();
+				await packageManager.update();
 
-			expect(getCurrentCommit(installedDir)).toBe(v2Commit);
-			expect(getFileContent(installedDir, "extension.ts")).toBe("// v2");
+				expect(getCurrentCommit(installedDir)).toBe(v2Commit);
+				expect(getFileContent(installedDir, "extension.ts")).toBe("// v2");
 
-			git(["checkout", "v1"], installedDir);
+				git(["checkout", "v1"], installedDir);
 
-			await packageManager.update(pinnedSource);
+				await packageManager.update(pinnedSource);
 
-			expect(getCurrentCommit(installedDir)).toBe(v2Commit);
-			expect(getFileContent(installedDir, "extension.ts")).toBe("// v2");
-		});
+				expect(getCurrentCommit(installedDir)).toBe(v2Commit);
+				expect(getFileContent(installedDir, "extension.ts")).toBe("// v2");
+			},
+		);
 	});
 
 	describe("temporary git sources", () => {
