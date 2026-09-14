@@ -8,13 +8,14 @@ import { SettingsManager } from "../src/core/settings-manager.ts";
 import { createInMemoryModelRegistry, getModelRuntime } from "./model-runtime-test-utils.ts";
 import { createTestResourceLoader } from "./utilities.ts";
 
-describe("OpenRouter routing profiles", () => {
+describe("routing profiles", () => {
 	let session: AgentSession;
 
 	beforeEach(async () => {
 		const openRouterModel = getModel("openrouter", "anthropic/claude-3-haiku");
 		const anthropicModel = getModel("anthropic", "claude-fable-5");
-		if (!openRouterModel || !anthropicModel) throw new Error("Required test models are unavailable");
+		const codexModel = getModel("openai-codex", "gpt-5.4");
+		if (!openRouterModel || !anthropicModel || !codexModel) throw new Error("Required test models are unavailable");
 
 		const authStorage = AuthStorage.inMemory({
 			openrouter: { type: "api_key", key: "openrouter-key" },
@@ -36,7 +37,7 @@ describe("OpenRouter routing profiles", () => {
 			cwd: process.cwd(),
 			modelRuntime,
 			resourceLoader: createTestResourceLoader(),
-			scopedModels: [{ model: openRouterModel }, { model: anthropicModel }],
+			scopedModels: [{ model: openRouterModel }, { model: anthropicModel }, { model: codexModel }],
 		});
 	});
 
@@ -44,14 +45,14 @@ describe("OpenRouter routing profiles", () => {
 		session.dispose();
 	});
 
-	it("retains a profile across direct provider switches without applying it outside OpenRouter", async () => {
+	it("caches a profile per model across direct provider switches", async () => {
 		expect(session.cycleRoutingProfile()).toBe("fast");
 		expect(session.getActiveRoutingOverride()).toEqual(session.getRoutingProfiles().fast);
 
 		const anthropicModel = session.scopedModels[1].model;
 		await session.setModel(anthropicModel);
 
-		expect(session.getActiveRoutingProfile()).toBe("fast");
+		expect(session.getActiveRoutingProfile()).toBeUndefined();
 		expect(session.isRoutingProfilesSupported()).toBe(false);
 		expect(session.getActiveRoutingOverride()).toBeUndefined();
 
@@ -62,16 +63,35 @@ describe("OpenRouter routing profiles", () => {
 		expect(session.getActiveRoutingOverride()).toEqual(session.getRoutingProfiles().fast);
 	});
 
-	it("retains a profile across scoped model cycling", async () => {
+	it("caches a profile per model across scoped model cycling", async () => {
 		expect(session.cycleRoutingProfile()).toBe("fast");
 
 		await session.cycleModel();
 		expect(session.model?.provider).toBe("anthropic");
-		expect(session.getActiveRoutingProfile()).toBe("fast");
+		expect(session.getActiveRoutingProfile()).toBeUndefined();
 		expect(session.getActiveRoutingOverride()).toBeUndefined();
 
 		await session.cycleModel();
 		expect(session.model?.provider).toBe("openrouter");
+		expect(session.getActiveRoutingProfile()).toBe("fast");
+		expect(session.getActiveRoutingOverride()).toEqual(session.getRoutingProfiles().fast);
+	});
+
+	it("cycles only the fast priority tier for OpenAI Codex", () => {
+		expect(session.cycleRoutingProfile()).toBe("fast");
+		session.agent.state.model = session.scopedModels[2].model;
+
+		expect(session.isRoutingProfilesSupported()).toBe(true);
+		expect(session.getActiveRoutingProfile()).toBeUndefined();
+		expect(session.cycleRoutingProfile()).toBe("fast");
+		expect(session.getAppliedRoutingProfile()).toBe("fast");
+		expect(session.getActiveServiceTier()).toBe("priority");
+		expect(session.getActiveRoutingOverride()).toBeUndefined();
+
+		expect(session.cycleRoutingProfile()).toBeUndefined();
+		expect(session.getActiveServiceTier()).toBeUndefined();
+
+		session.agent.state.model = session.scopedModels[0].model;
 		expect(session.getActiveRoutingProfile()).toBe("fast");
 		expect(session.getActiveRoutingOverride()).toEqual(session.getRoutingProfiles().fast);
 	});

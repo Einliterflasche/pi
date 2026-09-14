@@ -4238,7 +4238,7 @@ export class InteractiveMode {
 
 	private cycleRoutingProfile(): void {
 		if (!this.session.isRoutingProfilesSupported()) {
-			this.showStatus("Routing profiles only apply to OpenRouter models");
+			this.showStatus("Routing profiles only apply to OpenRouter and OpenAI Codex models");
 			return;
 		}
 		const name = this.session.cycleRoutingProfile();

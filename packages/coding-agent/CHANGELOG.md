@@ -20,6 +20,7 @@
 - Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
 - Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
 - Added named OpenRouter routing profiles via the `openRouterRoutingProfiles` setting, cycleable at runtime with `alt+a` (`app.routing.cycle`) and shown in the footer; built-in `fast` and `cheap` profiles apply when unset, and the active profile overrides per-model routing for the current session.
+- Added a `fast` routing profile for OpenAI Codex models that sends the priority service tier, with runtime-only profile selections cached per provider/model.
 - Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
 - Added an optional installer-managed VoxType extension for hold-Space voice dictation in terminals with key-release support.
 

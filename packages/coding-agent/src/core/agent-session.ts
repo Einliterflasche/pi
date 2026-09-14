@@ -426,8 +426,8 @@ export class AgentSession {
 	private _permissionDelegationContext: string | undefined;
 	private _activeToolNamesBeforeReadOnly: string[] | undefined;
 
-	// OpenRouter routing profiles (session-scoped active selection)
-	private _activeRoutingProfile: string | undefined;
+	// Runtime-only routing profile selections keyed by provider/model.
+	private readonly _activeRoutingProfiles = new Map<string, string>();
 
 	private _modelRuntime: ModelRuntime;
 
@@ -2186,41 +2186,74 @@ ${JSON.stringify({
 		return Object.keys(configured).length > 0 ? configured : DEFAULT_ROUTING_PROFILES;
 	}
 
-	/** Currently active routing profile name, or undefined when using model defaults. */
+	/** Runtime-only routing profile selected for the active provider/model. */
 	getActiveRoutingProfile(): string | undefined {
-		return this._activeRoutingProfile;
+		const key = this._getRoutingProfileModelKey();
+		return key ? this._activeRoutingProfiles.get(key) : undefined;
+	}
+
+	/** Selected routing profile when it is available for the active model. */
+	getAppliedRoutingProfile(): string | undefined {
+		const profile = this.getActiveRoutingProfile();
+		return profile && this._getRoutingProfileNames().includes(profile) ? profile : undefined;
 	}
 
 	/**
-	 * Cycle the active routing profile: off -> first profile -> ... -> off.
-	 * Returns the newly active profile name, or undefined when cycled to off.
-	 * Does nothing and returns undefined when no profiles are configured.
+	 * Cycle the active model's routing profiles. OpenRouter uses its configured profiles;
+	 * OpenAI Codex cycles only off -> fast -> off.
 	 */
 	cycleRoutingProfile(): string | undefined {
-		const names = Object.keys(this.getRoutingProfiles());
+		const names = this._getRoutingProfileNames();
 		if (names.length === 0) return undefined;
 		const order = [undefined, ...names];
-		const next = order[(order.indexOf(this._activeRoutingProfile) + 1) % order.length];
-		this._activeRoutingProfile = next;
+		const current = this.getAppliedRoutingProfile();
+		const next = order[(order.indexOf(current) + 1) % order.length];
+		const key = this._getRoutingProfileModelKey();
+		if (!key) return undefined;
+		if (next) {
+			this._activeRoutingProfiles.set(key, next);
+		} else {
+			this._activeRoutingProfiles.delete(key);
+		}
 		return next;
 	}
 
-	/**
-	 * Routing override for the active profile, merged over model compat routing
-	 * by the openai-completions adapter. Undefined when the current model does not
-	 * use OpenRouter or no profile is active. The selection remains session-scoped
-	 * while another provider is active so it can be restored on return.
-	 */
+	/** OpenRouter request override for the active profile. */
 	getActiveRoutingOverride(): OpenRouterRouting | undefined {
-		if (!this.isRoutingProfilesSupported() || !this._activeRoutingProfile) return undefined;
-		return this.getRoutingProfiles()[this._activeRoutingProfile];
+		if (!this._isOpenRouterRoutingModel()) return undefined;
+		const profile = this.getAppliedRoutingProfile();
+		return profile ? this.getRoutingProfiles()[profile] : undefined;
 	}
 
-	/** Whether the active model is routed through OpenRouter; routing profiles only apply then. */
+	/** OpenAI Codex service tier selected by the active profile. */
+	getActiveServiceTier(): "priority" | undefined {
+		return this._isOpenAICodexRoutingModel() && this.getAppliedRoutingProfile() === "fast" ? "priority" : undefined;
+	}
+
+	/** Whether the active model supports runtime routing profiles. */
 	isRoutingProfilesSupported(): boolean {
+		return this._isOpenRouterRoutingModel() || this._isOpenAICodexRoutingModel();
+	}
+
+	private _getRoutingProfileNames(): string[] {
+		if (this._isOpenAICodexRoutingModel()) return ["fast"];
+		if (this._isOpenRouterRoutingModel()) return Object.keys(this.getRoutingProfiles());
+		return [];
+	}
+
+	private _getRoutingProfileModelKey(): string | undefined {
 		const model = this.model;
-		if (!model) return false;
-		return model.provider === "openrouter" || model.baseUrl.includes("openrouter.ai");
+		return model ? `${model.provider}\0${model.id}` : undefined;
+	}
+
+	private _isOpenRouterRoutingModel(): boolean {
+		const model = this.model;
+		return !!model && (model.provider === "openrouter" || model.baseUrl.includes("openrouter.ai"));
+	}
+
+	private _isOpenAICodexRoutingModel(): boolean {
+		const model = this.model;
+		return !!model && model.provider === "openai-codex" && model.api === "openai-codex-responses";
 	}
 
 	private _getThinkingLevelForModelSwitch(targetModel?: Model<any>, explicitLevel?: ThinkingLevel): ThinkingLevel {

@@ -1,6 +1,12 @@
 import { join } from "node:path";
 import { Agent, type AgentMessage, setDefaultStreamFn, type ThinkingLevel } from "@earendil-works/pi-agent-core";
-import { clampThinkingLevel, type Message, type Model, streamSimple } from "@earendil-works/pi-ai/compat";
+import {
+	clampThinkingLevel,
+	type Message,
+	type Model,
+	type ProviderHeaders,
+	streamSimple,
+} from "@earendil-works/pi-ai/compat";
 import { getAgentDir } from "../config.ts";
 import { resolvePath } from "../utils/paths.ts";
 import { AgentSession } from "./agent-session.ts";
@@ -322,20 +328,22 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 			const websocketConnectTimeoutMs =
 				options?.websocketConnectTimeoutMs ?? settingsManager.getWebSocketConnectTimeoutMs();
 			const headerRunner = extensionRunnerRef.current;
-			return modelRuntime.streamSimple(model, context, {
+			const requestOptions = {
 				...options,
 				openRouterRouting: sessionRef.current?.getActiveRoutingOverride(),
+				serviceTier: sessionRef.current?.getActiveServiceTier(),
 				timeoutMs,
 				websocketConnectTimeoutMs,
 				maxRetries: options?.maxRetries ?? providerRetrySettings.maxRetries,
 				maxRetryDelayMs: options?.maxRetryDelayMs ?? providerRetrySettings.maxRetryDelayMs,
-				transformHeaders: async (requestHeaders) => {
+				transformHeaders: async (requestHeaders: ProviderHeaders) => {
 					const headers = mergeProviderHeaders(model, options?.sessionId, requestHeaders);
 					return headerRunner?.hasHandlers("before_provider_headers")
 						? headerRunner.emitBeforeProviderHeaders(headers ?? {})
 						: (headers ?? {});
 				},
-			});
+			};
+			return modelRuntime.streamSimple(model, context, requestOptions);
 		},
 		onPayload: async (payload, _model) => {
 			const runner = extensionRunnerRef.current;
