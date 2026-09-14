@@ -14,7 +14,7 @@ describe("routing profiles", () => {
 	beforeEach(async () => {
 		const openRouterModel = getModel("openrouter", "anthropic/claude-3-haiku");
 		const anthropicModel = getModel("anthropic", "claude-fable-5");
-		const codexModel = getModel("openai-codex", "gpt-5.4");
+		const codexModel = getModel("openai-codex", "gpt-5.5");
 		if (!openRouterModel || !anthropicModel || !codexModel) throw new Error("Required test models are unavailable");
 
 		const authStorage = AuthStorage.inMemory({
