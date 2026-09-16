@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-dev.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # nixpkgs unstable no longer supports Intel macOS. Keep using the final
     # Darwin branch that does so for pi's x86_64-darwin package.
@@ -14,6 +15,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-dev,
       nixpkgs-darwin-x64,
     }:
     let
@@ -33,6 +35,14 @@
         pkgs.callPackage ./nix/package.nix { source = self; };
     in
     {
+      devShells = forAllSystems (system: {
+        default = import ./shell.nix {
+          pkgs = import (if system == "x86_64-darwin" then nixpkgs-darwin-x64 else nixpkgs-dev) {
+            inherit system;
+          };
+        };
+      });
+
       packages = forAllSystems (system: {
         default = packageFor system;
         pi = packageFor system;
