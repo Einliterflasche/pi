@@ -717,9 +717,7 @@ ${JSON.stringify({
 		return normalizeBuildSystemPromptOptions({
 			...options,
 			forceSystemPrompt:
-				options.forceSystemPrompt === undefined
-					? undefined
-					: `${options.forceSystemPrompt}\n\n${permissionPrompt}`,
+				options.forceSystemPrompt === undefined ? undefined : `${options.forceSystemPrompt}\n\n${permissionPrompt}`,
 			sections: { ...options.sections, permission_mode: permissionPrompt },
 		});
 	}
@@ -1784,7 +1782,12 @@ ${JSON.stringify({
 	private _applyToolLoadout(toolNames: string[]): AgentTool[] {
 		const tools = [...new Set(toolNames)].flatMap((name) => {
 			const tool = this._toolRegistry.get(name);
-			return tool && this._getToolExposure(name) !== "hidden" && this._isActivatable(name) ? [tool] : [];
+			return tool &&
+				this._isToolAvailable(name) &&
+				this._getToolExposure(name) !== "hidden" &&
+				this._isActivatable(name)
+				? [tool]
+				: [];
 		});
 		const hooks = tools.flatMap((tool) => {
 			const entry = this._toolDefinitions.get(tool.name);
@@ -1826,6 +1829,14 @@ ${JSON.stringify({
 		this._hiddenDeclarations = hidden;
 		this.agent.state.tools = declared;
 		return declared;
+	}
+
+	private _isToolAvailable(name: string): boolean {
+		return (
+			this._toolRegistry.has(name) &&
+			(this.permissionMode !== "read-only" ||
+				(READ_ONLY_BUILTIN_TOOLS.has(name) && this._toolDefinitions.get(name)?.sourceInfo.source === "builtin"))
+		);
 	}
 
 	/** Whether compaction or branch summarization is currently running */
@@ -2040,6 +2051,16 @@ ${JSON.stringify({
 		this._pendingToolNames.clear();
 		this._isAgentRunActive = true;
 		try {
+			// Custom-message turns and resumed queues bypass prompt()'s initial prompt preparation.
+			if (!this._runSystemPromptOptions) {
+				const options = normalizeBuildSystemPromptOptions({
+					...this._baseSystemPromptOptions,
+					selectedTools: this.getActiveToolNames(),
+				});
+				const updateMessage = this._preparePromptAndToolLoadout(options);
+				this._runSystemPromptOptions = options;
+				if (updateMessage) messages = [updateMessage, ...(Array.isArray(messages) ? messages : [messages])];
+			}
 			await this.agent.prompt(messages);
 			while (!this._agentRunAbortRequested) {
 				if (await this._handlePostAgentRun()) {
