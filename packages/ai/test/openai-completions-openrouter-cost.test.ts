@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { stream as streamOpenAICompletions } from "../src/api/openai-completions.ts";
-import { getModel } from "../src/compat.ts";
+import { getModel, normalizeContext } from "../src/compat.ts";
 
 const mockState = vi.hoisted(() => ({
 	lastParams: undefined as Record<string, unknown> | undefined,
@@ -55,10 +55,10 @@ describe("openrouter reported cost", () => {
 		let partial: { usage?: { cost?: { total?: number; source?: string } } } | undefined;
 		for await (const ev of streamOpenAICompletions(
 			model,
-			{
+			normalizeContext({
 				systemPrompt: "x",
 				messages: [{ role: "user" as const, content: "hi", timestamp: Date.now() }],
-			},
+			}),
 			{ apiKey: "sk-test" },
 		)) {
 			if (ev.type === "start") {
