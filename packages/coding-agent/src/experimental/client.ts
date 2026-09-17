@@ -81,6 +81,12 @@ export async function runClient(command: ClientCommand, options: RunClientOption
 
 		const agent = match.agent;
 		const completedText = new Map<string, string>();
+		const terminalRuns = new Set<string>();
+		let resolveTerminalDelivery!: (error: Error | undefined) => void;
+		const terminalDelivery = new Promise<Error | undefined>((resolve) => {
+			resolveTerminalDelivery = resolve;
+		});
+		let promptedRunId: string | undefined;
 		let deliveryTail = Promise.resolve();
 		const unsubscribe = match.transcript.state.subscribe((value, _context, delivery) => {
 			if (delivery.kind !== "update" || value.event === null) return;
@@ -90,16 +96,43 @@ export async function runClient(command: ClientCommand, options: RunClientOption
 					completedText.set(event.runId, messageText(event.message));
 				}
 				await options.onEvent?.(event);
+				if (event.type === "run_end" || event.type === "run_suspend") {
+					terminalRuns.add(event.runId);
+					if (event.runId === promptedRunId) resolveTerminalDelivery(undefined);
+				}
+			});
+			void deliveryTail.catch((error: unknown) => {
+				resolveTerminalDelivery(error instanceof Error ? error : new Error(String(error)));
 			});
 		});
 		if (match.transcript.state.value?.snapshot === null || match.transcript.state.value?.snapshot === undefined) {
 			unsubscribe();
 			throw new Error("Transcript has no initialized snapshot");
 		}
+		const removeConnectionListener = match.client.onConnectionStateChange((change) => {
+			if (change.state !== "connected") {
+				resolveTerminalDelivery(change.error ?? new Error("Connection lost before terminal prompt delivery"));
+			}
+		});
+		const removeAttachmentListener = match.client.onAttachmentChange((attachment) => {
+			if (attachment?.sessionId !== sessionId) {
+				resolveTerminalDelivery(new Error("Session detached before terminal prompt delivery"));
+			}
+		});
 		let response: AgentOperationResponse;
 		try {
 			response = await agent.prompt({ message: command.prompt, images: null }, BACKGROUND_CONTEXT);
+			if (response.accepted) {
+				// The RPC reply and transcript updates travel independently. Keep the subscription
+				// until this run's terminal event (and its presentation callback) has been delivered.
+				promptedRunId = response.operationId;
+				if (terminalRuns.has(promptedRunId)) resolveTerminalDelivery(undefined);
+				const deliveryError = await terminalDelivery;
+				if (deliveryError) throw deliveryError;
+			}
 		} finally {
+			removeConnectionListener();
+			removeAttachmentListener();
 			unsubscribe();
 			await deliveryTail;
 		}
