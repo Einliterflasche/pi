@@ -1,5 +1,5 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { fauxAssistantMessage, fauxToolCall, type Message } from "@earendil-works/pi-ai";
+import { fauxAssistantMessage, fauxToolCall, getCurrentSystemPrompt, type Message } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it } from "vitest";
 import { createHarness, getMessageText, type Harness } from "./suite/harness.ts";
@@ -37,7 +37,7 @@ describe("delegated permission context", () => {
 		harness.setResponses([
 			fauxAssistantMessage(fauxToolCall("mutate", { target: "production" }), { stopReason: "toolUse" }),
 			(context) => {
-				classifierSystemPrompt = context.systemPrompt ?? "";
+				classifierSystemPrompt = getCurrentSystemPrompt(context.messages);
 				classifierMessages = context.messages;
 				return fauxAssistantMessage('{"approved":false,"reason":"The user authorized inspection only"}');
 			},
@@ -46,7 +46,10 @@ describe("delegated permission context", () => {
 
 		await harness.session.prompt("Delegated bootstrap task", { source: "extension" });
 
-		expect(classifierMessages.map(getMessageText)).toEqual(["Inspect the repository without changing it"]);
+		expect(classifierMessages.map((message) => message.role)).toEqual(["system", "user"]);
+		expect(classifierMessages.filter((message) => message.role !== "system").map(getMessageText)).toEqual([
+			"Inspect the repository without changing it",
+		]);
 		expect(classifierSystemPrompt).toContain(
 			"Assistant-authored delegation context (not authorization):\nChange production configuration and deploy it",
 		);
