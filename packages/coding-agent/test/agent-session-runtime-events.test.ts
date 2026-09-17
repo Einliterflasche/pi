@@ -242,7 +242,8 @@ describe("AgentSessionRuntime session lifecycle events", () => {
 		expect(runtimeHost.session).toBe(previousSession);
 		expect(runtimeHost.session.sessionFile).toBe(previousSessionFile);
 		const detachedManager = SessionManager.open(detachedResult.sessionFile!);
-		expect(detachedManager.buildSessionContext().messages).toEqual([]);
+		expect(detachedManager.buildSessionContext().messages).toEqual([previousSession.messages[0]]);
+		expect(detachedManager.buildSessionContext().messages[0]?.role).toBe("system");
 		expect(detachedManager.getHeader()?.parentSession).toBe(previousSessionFile);
 		expect(events).toEqual([{ type: "session_before_fork", entryId: userMessage.entryId, position: "before" }]);
 		rmSync(detachedResult.sessionFile!, { force: true });
@@ -292,7 +293,8 @@ describe("AgentSessionRuntime session lifecycle events", () => {
 				.getEntries()
 				.filter((entry) => entry.type === "message")
 				.map((entry) => entry.message.role),
-		).toEqual(["user", "assistant"]);
+		).toEqual(["system", "user", "assistant"]);
+		expect(detachedManager.buildSessionContext().messages).toEqual(originalSession.messages.slice(0, 3));
 		rmSync(result.sessionFile!, { force: true });
 	});
 });
