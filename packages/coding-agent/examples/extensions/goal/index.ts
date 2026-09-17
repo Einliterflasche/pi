@@ -413,7 +413,10 @@ export default function goalExtension(pi: ExtensionAPI) {
 		try {
 			const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
 			if (!auth.ok) throw new Error(auth.error);
-			const sessionMessages = convertToLlm(buildSessionContext([...ctx.sessionManager.getBranch()]).messages);
+			// Session instructions and tool declarations belong to the worker, not the independent evaluator.
+			const sessionMessages = convertToLlm(buildSessionContext([...ctx.sessionManager.getBranch()]).messages).filter(
+				(message) => message.role !== "system",
+			);
 			const evaluatorRequest: UserMessage = {
 				role: "user",
 				content: [
