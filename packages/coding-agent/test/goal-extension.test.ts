@@ -1,4 +1,10 @@
-import { fauxAssistantMessage, fauxToolCall } from "@earendil-works/pi-ai";
+import {
+	fauxAssistantMessage,
+	fauxToolCall,
+	getCurrentSystemPrompt,
+	getCurrentTools,
+	type TranscriptContext,
+} from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it } from "vitest";
 import goalExtension, {
@@ -8,7 +14,7 @@ import goalExtension, {
 } from "../examples/extensions/goal/index.ts";
 import type { ExtensionUIContext } from "../src/core/extensions/index.ts";
 import { SessionManager } from "../src/core/session-manager.ts";
-import { createHarness, getUserTexts, type Harness } from "./suite/harness.ts";
+import { createHarness, getMessageText, getUserTexts, type Harness } from "./suite/harness.ts";
 
 function latestGoalState(harness: Harness): GoalState | null {
 	const entries = harness.sessionManager
@@ -131,6 +137,58 @@ describe("goal extension", () => {
 			.filter((entry) => entry.type === "custom_message" && entry.customType === "goal_continuation");
 		expect(continuations).toHaveLength(2);
 		expect(harness.getPendingResponseCount()).toBe(0);
+	});
+
+	it("isolates evaluator instructions and tools from the worker transcript", async () => {
+		let workerContext: TranscriptContext | undefined;
+		let evaluatorContext: TranscriptContext | undefined;
+		const harness = await createHarness({
+			extensionFactories: [
+				goalExtension,
+				(pi) => {
+					pi.on("before_agent_start", () => ({ systemPrompt: "Worker-only forced instructions." }));
+				},
+			],
+		});
+		harnesses.push(harness);
+		await bindHarness(harness, "print");
+		harness.setResponses([fauxAssistantMessage("Ready.")]);
+		await harness.session.prompt("Prepare to work");
+		harness.setResponses([
+			(context) => {
+				workerContext = context;
+				return fauxAssistantMessage("Verification passed.");
+			},
+			(context) => {
+				evaluatorContext = context;
+				return fauxAssistantMessage(
+					'{"complete":true,"madeProgress":true,"blocked":false,"progress":"verified","reason":"verification passed"}',
+				);
+			},
+		]);
+
+		await harness.session.prompt("/goal verify the task");
+
+		expect(workerContext).toBeDefined();
+		expect(evaluatorContext).toBeDefined();
+		expect(workerContext!.messages.filter((message) => message.role === "system").map(getMessageText)).toContain(
+			"Worker-only forced instructions.",
+		);
+		expect(getCurrentTools(workerContext!.messages).length).toBeGreaterThan(0);
+		const evaluatorPrompt = getCurrentSystemPrompt(evaluatorContext!.messages);
+		expect(evaluatorPrompt).toContain("You are an independent goal-completion evaluator.");
+		expect(evaluatorPrompt).not.toContain("Worker-only forced instructions.");
+		expect(getCurrentTools(evaluatorContext!.messages)).toEqual([]);
+		expect(
+			evaluatorContext!.messages.filter((message) => message.role === "assistant").map(getMessageText),
+		).toContain("Verification passed.");
+		expect(
+			evaluatorContext!.messages
+				.filter((message) => message.role === "user")
+				.map(getMessageText)
+				.join("\n"),
+		).toContain("Active goal:\nverify the task");
+		expect(latestGoalState(harness)?.status).toBe("completed");
 	});
 
 	it("waits for the goal loop in headless mode", async () => {
