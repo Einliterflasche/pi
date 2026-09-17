@@ -637,9 +637,7 @@ ${JSON.stringify({
 		return normalizeBuildSystemPromptOptions({
 			...options,
 			forceSystemPrompt:
-				options.forceSystemPrompt === undefined
-					? undefined
-					: `${options.forceSystemPrompt}\n\n${permissionPrompt}`,
+				options.forceSystemPrompt === undefined ? undefined : `${options.forceSystemPrompt}\n\n${permissionPrompt}`,
 			sections: { ...options.sections, permission_mode: permissionPrompt },
 		});
 	}
@@ -1489,13 +1487,21 @@ ${JSON.stringify({
 		const validToolNames: string[] = [];
 		for (const name of toolNames) {
 			const tool = this._toolRegistry.get(name);
-			if (tool) {
+			if (tool && this._isToolAvailable(name)) {
 				tools.push(tool);
 				validToolNames.push(name);
 			}
 		}
 		this.agent.state.tools = tools;
 		this._rebuildSystemPrompt(validToolNames);
+	}
+
+	private _isToolAvailable(name: string): boolean {
+		return (
+			this._toolRegistry.has(name) &&
+			(this.permissionMode !== "read-only" ||
+				(READ_ONLY_BUILTIN_TOOLS.has(name) && this._toolDefinitions.get(name)?.sourceInfo.source === "builtin"))
+		);
 	}
 
 	/** Whether compaction or branch summarization is currently running */
@@ -1616,7 +1622,7 @@ ${JSON.stringify({
 		options: NormalizedBuildSystemPromptOptions,
 		messages: AgentMessage[] = this.agent.state.messages,
 	): SystemMessage | undefined {
-		options.selectedTools = [...new Set(options.selectedTools)].filter((name) => this._toolRegistry.has(name));
+		options.selectedTools = [...new Set(options.selectedTools)].filter((name) => this._isToolAvailable(name));
 		this.agent.state.tools = options.selectedTools.flatMap((name) => {
 			const tool = this._toolRegistry.get(name);
 			return tool ? [tool] : [];
@@ -1661,14 +1667,7 @@ ${JSON.stringify({
 	private _restoreToolsFromTranscript(): void {
 		const current = getCurrentSystemMessage(this.sessionManager.buildSessionContext().messages);
 		if (!current) return;
-		const toolNames = (current.toolsAdded ?? [])
-			.map((tool) => tool.name)
-			.filter((name) => this._toolRegistry.has(name));
-		this.agent.state.tools = toolNames.flatMap((name) => {
-			const registered = this._toolRegistry.get(name);
-			return registered ? [registered] : [];
-		});
-		this._rebuildSystemPrompt(toolNames);
+		this.setActiveToolsByName((current.toolsAdded ?? []).map((tool) => tool.name));
 	}
 
 	// =========================================================================
@@ -1679,6 +1678,16 @@ ${JSON.stringify({
 		this._agentRunAbortRequested = false;
 		this._isAgentRunActive = true;
 		try {
+			// Custom-message turns and resumed queues bypass prompt()'s initial prompt preparation.
+			if (!this._runSystemPromptOptions) {
+				const options = normalizeBuildSystemPromptOptions({
+					...this._baseSystemPromptOptions,
+					selectedTools: this.getActiveToolNames(),
+				});
+				const updateMessage = this._preparePromptAndToolLoadout(options);
+				this._runSystemPromptOptions = options;
+				if (updateMessage) messages = [updateMessage, ...(Array.isArray(messages) ? messages : [messages])];
+			}
 			await this.agent.prompt(messages);
 			while (!this._agentRunAbortRequested) {
 				if (await this._handlePostAgentRun()) {
