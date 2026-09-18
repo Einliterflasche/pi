@@ -15,6 +15,7 @@ import goalExtension, {
 import type { ExtensionUIContext } from "../src/core/extensions/index.ts";
 import { SessionManager } from "../src/core/session-manager.ts";
 import { createHarness, getMessageText, getUserTexts, type Harness } from "./suite/harness.ts";
+import { createTestExtensionsResult, createTestResourceLoader } from "./utilities.ts";
 
 function latestGoalState(harness: Harness): GoalState | null {
 	const entries = harness.sessionManager
@@ -140,20 +141,33 @@ describe("goal extension", () => {
 	});
 
 	it("isolates evaluator instructions and tools from the worker transcript", async () => {
+		let preparedContext: TranscriptContext | undefined;
 		let workerContext: TranscriptContext | undefined;
 		let evaluatorContext: TranscriptContext | undefined;
+		const extensionsResult = await createTestExtensionsResult([
+			goalExtension,
+			(pi) => {
+				pi.on("before_agent_start", () => ({ systemPrompt: "Worker-only forced instructions." }));
+			},
+		]);
 		const harness = await createHarness({
-			extensionFactories: [
-				goalExtension,
-				(pi) => {
-					pi.on("before_agent_start", () => ({ systemPrompt: "Worker-only forced instructions." }));
-				},
-			],
+			resourceLoader: {
+				...createTestResourceLoader({ extensionsResult }),
+				getSystemPrompt: () => "Worker-only transcript instructions.",
+			},
 		});
 		harnesses.push(harness);
 		await bindHarness(harness, "print");
-		harness.setResponses([fauxAssistantMessage("Ready.")]);
+		harness.setResponses([
+			(context) => {
+				preparedContext = context;
+				return fauxAssistantMessage("Ready.");
+			},
+		]);
 		await harness.session.prompt("Prepare to work");
+		expect(preparedContext).toBeDefined();
+		expect(getCurrentSystemPrompt(preparedContext!.messages)).toBe("Worker-only forced instructions.");
+		expect(getCurrentSystemPrompt(harness.session.messages)).not.toContain("Worker-only forced instructions.");
 		harness.setResponses([
 			(context) => {
 				workerContext = context;
@@ -171,13 +185,12 @@ describe("goal extension", () => {
 
 		expect(workerContext).toBeDefined();
 		expect(evaluatorContext).toBeDefined();
-		expect(workerContext!.messages.filter((message) => message.role === "system").map(getMessageText)).toContain(
-			"Worker-only forced instructions.",
-		);
+		expect(getCurrentSystemPrompt(workerContext!.messages)).toContain("Worker-only transcript instructions.");
 		expect(getCurrentTools(workerContext!.messages).length).toBeGreaterThan(0);
 		const evaluatorPrompt = getCurrentSystemPrompt(evaluatorContext!.messages);
 		expect(evaluatorPrompt).toContain("You are an independent goal-completion evaluator.");
 		expect(evaluatorPrompt).not.toContain("Worker-only forced instructions.");
+		expect(evaluatorPrompt).not.toContain("Worker-only transcript instructions.");
 		expect(getCurrentTools(evaluatorContext!.messages)).toEqual([]);
 		expect(
 			evaluatorContext!.messages.filter((message) => message.role === "assistant").map(getMessageText),
