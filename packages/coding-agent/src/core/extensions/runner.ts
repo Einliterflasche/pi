@@ -1437,8 +1437,8 @@ export class ExtensionRunner {
 		const ctx = this.createContext();
 		const event: InputReceivedEvent = { type: "input_received", text, images, source, streamingBehavior };
 		const pending: Promise<void>[] = [];
-		for (const ext of this.extensions) {
-			for (const handler of ext.handlers.get("input_received") ?? []) {
+		for (const { ext, handlers } of snapshotEventHandlers(this.extensions, "input_received")) {
+			for (const handler of handlers) {
 				try {
 					pending.push(
 						Promise.resolve(handler(event, ctx)).then(
