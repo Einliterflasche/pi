@@ -166,7 +166,7 @@ describe("Anthropic raw SSE parsing", () => {
 		]);
 	});
 
-	it("uses a returned fallback model for cost attribution", async () => {
+	it("records the returned fallback model without estimating billed cost", async () => {
 		const fallbackModel = "fallback-model";
 		const model: Model<"anthropic-messages"> = {
 			...getModel("anthropic", "claude-opus-5"),
@@ -192,8 +192,7 @@ describe("Anthropic raw SSE parsing", () => {
 
 		expect(result.model).toBe(model.id);
 		expect(result.responseModel).toBe(fallbackModel);
-		expect(result.usage.cost.input).toBeCloseTo(0.0003, 10);
-		expect(result.usage.cost.output).toBeCloseTo(0.0001, 10);
+		expect(result.usage).toMatchObject({ input: 100, output: 20, totalTokens: 120, cost: null });
 	});
 
 	it("fails safely when Anthropic falls back after output begins", async () => {
