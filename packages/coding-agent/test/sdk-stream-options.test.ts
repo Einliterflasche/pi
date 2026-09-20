@@ -9,7 +9,7 @@ import {
 	normalizeContext,
 	type SimpleStreamOptions,
 } from "@earendil-works/pi-ai";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthStorage } from "../src/core/auth-storage.ts";
 import type { ExtensionFactory } from "../src/core/extensions/types.ts";
 import { DefaultResourceLoader } from "../src/core/resource-loader.ts";
@@ -32,6 +32,7 @@ describe("createAgentSession stream options", () => {
 	});
 
 	afterEach(() => {
+		vi.useRealTimers();
 		if (tempDir) {
 			rmSync(tempDir, { recursive: true, force: true });
 		}
@@ -198,6 +199,63 @@ describe("createAgentSession stream options", () => {
 			expect(fixture.session.cacheWarmingStatus?.reason).toBe("conversation context changed");
 		} finally {
 			fixture.dispose();
+		}
+	});
+
+	it.each([
+		["openrouter", "openai-completions"],
+		["openai-codex", "openai-codex-responses"],
+	] as const)("preserves opt-in %s routing and telemetry-free headers during cache warming", async (provider, api) => {
+		const model: Model<Api> = {
+			...createModel(api),
+			provider,
+			cost: { input: 10, output: 50, cacheRead: 0.25, cacheWrite: 12.5 },
+			promptCache: { short: 300 },
+		};
+		const authStorage = AuthStorage.create(join(agentDir, "auth.json"));
+		await authStorage.modify(provider, async () => ({ type: "api_key", key: "test-api-key" }));
+		const registry = await createModelRegistry(authStorage, join(agentDir, "models.json"));
+		const captured: SimpleStreamOptions[] = [];
+		registry.registerProvider(provider, {
+			api,
+			apiKey: "test-api-key",
+			streamSimple: (_model, _context, options) => {
+				captured.push(options ?? {});
+				return createDoneStream(api, 100_000);
+			},
+		});
+		const { session } = await createAgentSession({
+			cwd,
+			agentDir,
+			model,
+			modelRuntime: getModelRuntime(registry),
+			settingsManager: SettingsManager.inMemory({ cacheWarming: "idle" }),
+			sessionManager: SessionManager.inMemory(cwd),
+		});
+		vi.useFakeTimers();
+		try {
+			await session.prompt("default route");
+			expect(captured).toHaveLength(1);
+			expect(captured[0].openRouterRouting).toBeUndefined();
+			expect(captured[0]).toHaveProperty("serviceTier", undefined);
+			expect(session.cycleRoutingProfile()).toBe("fast");
+			await session.prompt("selected route");
+			expect(captured).toHaveLength(2);
+			await vi.advanceTimersByTimeAsync(270_000);
+			expect(captured).toHaveLength(3);
+			for (const options of captured.slice(1)) {
+				expect(options.openRouterRouting).toEqual(
+					provider === "openrouter" ? session.getRoutingProfiles().fast : undefined,
+				);
+				expect(options).toHaveProperty("serviceTier", provider === "openai-codex" ? "priority" : undefined);
+				expect(options.headers?.["HTTP-Referer"]).toBeUndefined();
+				expect(options.headers?.["X-OpenRouter-Title"]).toBeUndefined();
+				expect(options.headers?.["x-model"]).toBe("model");
+			}
+			expect(captured[2].maxTokens).toBe(1);
+		} finally {
+			session.dispose();
+			registry.unregisterProvider(provider);
 		}
 	});
 

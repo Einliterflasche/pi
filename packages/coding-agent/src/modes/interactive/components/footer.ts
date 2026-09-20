@@ -96,7 +96,7 @@ export class FooterComponent implements Component {
 			const usage =
 				entry.type === "message" && entry.message.role === "assistant"
 					? entry.message.usage
-					: entry.type === "compaction" || entry.type === "branch_summary"
+					: entry.type === "usage" || entry.type === "compaction" || entry.type === "branch_summary"
 						? entry.usage
 						: undefined;
 			if (!usage?.cost) continue;

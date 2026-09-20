@@ -50,7 +50,7 @@ const warmUsage: Usage = {
 	cacheRead: 100,
 	cacheWrite: 0,
 	totalTokens: 101,
-	cost: { input: 0, output: 0, cacheRead: 0.01, cacheWrite: 0, total: 0.01 },
+	cost: null,
 };
 
 function response(model: Model<Api>, stopReason: AssistantMessage["stopReason"] = "length"): AssistantMessage {
@@ -307,7 +307,7 @@ describe("cache warming", () => {
 		failed.warmer.cancel();
 	});
 
-	it("formats status and usage entries", () => {
+	it("formats status", () => {
 		const decision: CacheWarmingDecision = {
 			phase: "idle",
 			warmCost: 0.013,
@@ -320,18 +320,51 @@ describe("cache warming", () => {
 		expect(formatCacheWarmingStatus({ state: "scheduled", nextWarmAt: 222_000, decision }, 0)).toBe(
 			"Decision in 3m 42s (60% continuation probability, expected savings $0.360 >= $0.050 -> warm)",
 		);
-		const usage = {
-			...warmUsage,
-			cost: { input: 0.00004, output: 0.00005, cacheRead: 0.02940725, cacheWrite: 0, total: 0.02949725 },
-		};
+	});
+
+	it.each([undefined, "extension override"])("formats unknown cost without fabricating a price (%s)", (note) => {
 		const entry = SessionManager.inMemory().appendUsage(
 			"cache_warm",
 			adaptiveModel.provider,
 			adaptiveModel.id,
+			warmUsage,
+			note,
+		);
+		expect(formatCacheWarmingUsage(entry)).toBe(note ? `Cache warmed (${note})` : "Cache warmed");
+	});
+
+	it.each(["reported", "estimated"] as const)("distinguishes %s cache warming costs", (source) => {
+		const usage: Usage = {
+			...warmUsage,
+			cost: {
+				input: 0.00004,
+				output: 0.00005,
+				cacheRead: 0.02940725,
+				cacheWrite: 0,
+				total: 0.02949725,
+				source,
+			},
+		};
+		const entry = SessionManager.inMemory().appendUsage(
+			"cache_warm",
+			"openrouter",
+			"anthropic/claude-opus-4.6",
 			usage,
 			"extension override",
 		);
-		expect(formatCacheWarmingUsage(entry)).toBe("Cache warmed (extension override): $0.029497");
+		expect(formatCacheWarmingUsage(entry)).toBe(
+			source === "reported"
+				? "Cache warmed (extension override): $0.029497"
+				: "Cache warmed (extension override): $0.029497 (estimated)",
+		);
+	});
+
+	it("preserves a reported zero cost", () => {
+		const entry = SessionManager.inMemory().appendUsage("cache_warm", "openrouter", "free/model", {
+			...warmUsage,
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0, source: "reported" },
+		});
+		expect(formatCacheWarmingUsage(entry)).toBe("Cache warmed: $0.000");
 	});
 });
 
