@@ -451,7 +451,7 @@ function accumulateUsage(accumulator: UsageAccumulator, entry: Entry): void {
 		accumulator.output += usage.output;
 		accumulator.cacheRead += usage.cacheRead;
 		accumulator.cacheWrite += usage.cacheWrite;
-		accumulator.totalCost += usage.cost.total;
+		accumulator.totalCost += usage.cost?.total ?? 0;
 	}
 	if (
 		assistant &&
