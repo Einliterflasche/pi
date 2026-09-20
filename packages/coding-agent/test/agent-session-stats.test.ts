@@ -223,7 +223,7 @@ describe("AgentSession.getSessionStats", () => {
 					cacheRead: 97,
 					cacheWrite: 0,
 					totalTokens: 100,
-					cost: { input: 0.001, output: 0.002, cacheRead: 0.007, cacheWrite: 0, total: 0.01 },
+					cost: { input: 0.001, output: 0.002, cacheRead: 0.007, cacheWrite: 0, total: 0.01, source: "estimated" },
 				},
 				"extension override",
 			);

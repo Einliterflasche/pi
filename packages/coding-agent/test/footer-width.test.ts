@@ -1,3 +1,4 @@
+import type { Usage } from "@earendil-works/pi-ai";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { AgentSession } from "../src/core/agent-session.ts";
@@ -26,6 +27,7 @@ function createSession(options: {
 	toolUsage?: AssistantUsage;
 	usingSubscription?: boolean;
 	routedModel?: { model: { id: string }; thinkingLevel?: string };
+	warmingUsage?: Usage[];
 	routingProfile?: string;
 	routingProfilesSupported?: boolean;
 }): AgentSession {
@@ -65,6 +67,8 @@ function createSession(options: {
 			},
 		});
 	}
+
+	for (const usage of options.warmingUsage ?? []) entries.push({ type: "usage", usage });
 
 	const session = {
 		state: {
@@ -243,6 +247,35 @@ describe("FooterComponent width handling", () => {
 		expect(statsLine).not.toContain("CH");
 		expect(statsLine).not.toContain("$0.001");
 		expect(statsLine).not.toContain("auto");
+	});
+
+	it("includes cache warming tokens and only reported warming costs", () => {
+		const session = createSession({
+			sessionName: "",
+			warmingUsage: ([null, "estimated", "reported"] as const).map((source) => ({
+				input: 100,
+				output: 1,
+				cacheRead: 1000,
+				cacheWrite: 0,
+				totalTokens: 1101,
+				cost:
+					source === null
+						? null
+						: {
+								input: 0.001,
+								output: 0.001,
+								cacheRead: 0.001,
+								cacheWrite: 0,
+								total: 0.003,
+								source,
+							},
+			})),
+		});
+		const footer = new FooterComponent(session, createFooterData(1));
+		const statsLine = stripAnsi(footer.render(120)[1]);
+		expect(statsLine).toContain("↑300 ↓3");
+		expect(statsLine).toContain("$0.003");
+		expect(statsLine).not.toContain("$0.006");
 	});
 
 	it("hides a retained routing profile when the current model does not use OpenRouter", () => {
