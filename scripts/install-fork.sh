@@ -36,6 +36,7 @@ done
 npm --prefix packages/tui run build
 npm --prefix packages/chord run build
 npm --prefix packages/telemetry run build
+./scripts/ensure-model-data.sh
 ./node_modules/.bin/tsgo -p packages/ai/tsconfig.build.json
 npm --prefix packages/agent run build
 npm --prefix packages/protocol run build
