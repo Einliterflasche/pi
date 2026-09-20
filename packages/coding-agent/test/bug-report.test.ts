@@ -9,8 +9,10 @@ import {
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { VirtualTerminal } from "../../tui/test/virtual-terminal.ts";
 import type { AgentSession } from "../src/core/agent-session.ts";
-import { redactJsonValue, redactUrl } from "../src/core/bug-report.ts";
+import { AuthStorage } from "../src/core/auth-storage.ts";
+import { collectBugReportMetadata, redactJsonValue, redactUrl } from "../src/core/bug-report.ts";
 import { KeybindingsManager } from "../src/core/keybindings.ts";
+import { ModelRuntime } from "../src/core/model-runtime.ts";
 import { reportBug } from "../src/modes/interactive/bug-report.ts";
 import { ExtensionEditorComponent } from "../src/modes/interactive/components/extension-editor.ts";
 import { ExtensionSelectorComponent } from "../src/modes/interactive/components/extension-selector.ts";
@@ -87,6 +89,33 @@ describe("bug report prompt", () => {
 });
 
 describe("bug report redaction", () => {
+	it("omits tracking identifiers from settings without enabling telemetry", async () => {
+		const modelRuntime = await ModelRuntime.create({
+			credentials: AuthStorage.inMemory(),
+			modelsPath: null,
+			allowModelNetwork: false,
+		});
+		const settings = { trackingId: "private-id", defaultProvider: "test" };
+		const report = collectBugReportMetadata({
+			sessionId: "session",
+			cwd: "/tmp/project",
+			includeSession: false,
+			includeSummary: false,
+			messageCount: 0,
+			modelRuntime,
+			thinkingLevel: "off",
+			extensions: [],
+			extensionErrors: [],
+			globalSettings: settings,
+			projectSettings: settings,
+		});
+		expect(report.settings).toEqual({
+			global: { defaultProvider: "test" },
+			project: { defaultProvider: "test" },
+		});
+		expect(settings.trackingId).toBe("private-id");
+	});
+
 	it("removes URL credentials and secret query parameters", () => {
 		expect(redactUrl("https://user:pass@proxy.example.com:8080/")).toBe("https://proxy.example.com:8080/");
 		expect(redactUrl("git:https://pat@github.com/org/repo")).toBe("git:https://github.com/org/repo");

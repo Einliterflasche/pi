@@ -59,7 +59,7 @@ export function redactJsonValue(value: unknown): unknown {
 }
 
 function redactSettings(settings: Settings): Settings {
-	const { trackingId: _trackingId, ...rest } = settings;
+	const rest = Object.fromEntries(Object.entries(settings).filter(([key]) => key !== "trackingId"));
 	return redactJsonValue(rest) as Settings;
 }
 
