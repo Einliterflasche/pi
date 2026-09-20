@@ -79,7 +79,7 @@ function price(
 		cacheRead: 0,
 		cacheWrite: 0,
 		totalTokens: 0,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+		cost: null,
 		...tokens,
 	};
 	return calculateCost(model, usage).total;
@@ -448,6 +448,9 @@ export function formatCacheWarmingStatus(status: CacheWarmingStatus, now = Date.
 /** One-line transcript text for persisted cache-warming usage. */
 export function formatCacheWarmingUsage(entry: UsageEntry): string {
 	const note = entry.note ? ` (${entry.note})` : "";
-	const cost = entry.usage.cost.total.toFixed(6).replace(/(\.\d{3}\d*?)0+$/, "$1");
-	return `Cache warmed${note}: $${cost}`;
+	const usageCost = entry.usage.cost;
+	if (!usageCost) return `Cache warmed${note}`;
+	const cost = usageCost.total.toFixed(6).replace(/(\.\d{3}\d*?)0+$/, "$1");
+	const source = usageCost.source === "estimated" ? " (estimated)" : "";
+	return `Cache warmed${note}: $${cost}${source}`;
 }
