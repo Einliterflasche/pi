@@ -106,7 +106,10 @@ describe("experimental client prompt completion", () => {
 			type: "message_end",
 			lane: "main",
 			runId: "run",
-			message: { ...fauxAssistantMessage("answer"), diagnostics: undefined },
+			message: JSON.parse(JSON.stringify(fauxAssistantMessage("answer"))) as Extract<
+				LaneWatchEvent,
+				{ type: "message_end" }
+			>["message"],
 		});
 		if (order === "before") runtime.publish(terminalEvent());
 		runtime.reply.resolve({ accepted: true, operationId: "run", error: null });

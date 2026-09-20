@@ -269,7 +269,7 @@ describe("ToolExecutionComponent parity", () => {
 		{ ms: 3_599_999, formatted: "59m 59s" },
 		{ ms: 3_600_000, formatted: "1h 0m 0s" },
 		{ ms: 7_384_900, formatted: "2h 3m 4s" },
-	])("bash renderer formats $ms ms as $formatted while running and after completion", ({ ms, formatted }) => {
+	])("bash renderer formats $ms ms as $formatted while running and hides completed duration", ({ ms, formatted }) => {
 		vi.useFakeTimers();
 		vi.setSystemTime(0);
 		const component = new ToolExecutionComponent(
@@ -295,7 +295,8 @@ describe("ToolExecutionComponent parity", () => {
 		component.invalidate();
 		expect(stripAnsi(component.render(120).join("\n"))).toBe(completed);
 		expect(running).toContain(`Elapsed ${formatted}`);
-		expect(completed).toContain(`Took ${formatted}`);
+		expect(completed).not.toContain("Elapsed ");
+		expect(completed).not.toContain("Took ");
 	});
 
 	test("does not duplicate built-in headers when passed the active built-in definition", () => {
