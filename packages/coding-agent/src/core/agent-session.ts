@@ -1823,8 +1823,24 @@ ${JSON.stringify({
 	 * @throws Error if no model selected or no API key available (when not streaming)
 	 */
 	async prompt(text: string, options?: PromptOptions): Promise<void> {
+		try {
+			// Cancel stale extension work as soon as input arrives, even during settlement.
+			await this._extensionRunner.emitInputReceived(
+				text,
+				options?.images,
+				options?.source ?? "interactive",
+				this.isStreaming ? options?.streamingBehavior : undefined,
+			);
+		} catch (error) {
+			options?.preflightResult?.(false);
+			throw error;
+		}
+		await this._promptAfterInputReceived(text, options);
+	}
+
+	private async _promptAfterInputReceived(text: string, options?: PromptOptions): Promise<void> {
 		if (this._isEmittingAgentSettled) {
-			this._deferredSettledActions.push(async () => await this.prompt(text, options));
+			this._deferredSettledActions.push(async () => await this._promptAfterInputReceived(text, options));
 			return;
 		}
 		const expandPromptTemplates = options?.expandPromptTemplates ?? true;
@@ -1833,12 +1849,6 @@ ${JSON.stringify({
 
 		try {
 			const source = options?.source ?? "interactive";
-			await this._extensionRunner.emitInputReceived(
-				text,
-				options?.images,
-				source,
-				this.isStreaming ? options?.streamingBehavior : undefined,
-			);
 
 			// Handle extension commands first (execute immediately, even during streaming)
 			// Extension commands manage their own LLM interaction via pi.sendMessage()
