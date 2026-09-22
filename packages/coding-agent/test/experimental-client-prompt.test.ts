@@ -69,8 +69,9 @@ function createRuntime() {
 		removeConnectionListener,
 		removeAttachmentListener,
 		publish(event: LaneWatchEvent) {
-			transcript.state.event = event;
-			transcript.publish(BACKGROUND_CONTEXT);
+			transcript.change(BACKGROUND_CONTEXT, (draft) => {
+				draft.event = event;
+			});
 		},
 		disconnect(error: Error) {
 			connectionListener?.({ state: "disconnected", error });
