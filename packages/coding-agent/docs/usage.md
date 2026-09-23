@@ -22,11 +22,11 @@ To include files or images:
 
 Pi shows each tool call and result while it works. Press `Ctrl+O` to expand or collapse tool output. Press `Ctrl+T` to show or hide thinking blocks.
 
-The startup header lists the instructions and resources Pi loaded. The editor border indicates the current thinking level. The footer updates as the model uses context and reports usage.
+The startup header lists the instructions and resources Pi loaded. The editor border indicates the current thinking level and permission mode. The footer updates as the model uses context and reports usage.
 
 Pi does not ask before every tool call. Review commands and changed files, and use a sandbox for untrusted or unattended work. See [Security](security.md).
 
-This fork includes permission modes and the bundled subagent extension. Use `--permission-mode` with `manual`, `read-only`, `auto-read-only`, `auto`, or `skip`. See [Tool permissions](permissions.md) for approval behavior.
+This fork includes permission modes and the bundled subagent extension. Interactive sessions start in `auto` mode. Use `/permissions` or `Shift+Tab` to select a mode. Use `--permission-mode` with `manual`, `read-only`, `auto-read-only`, `auto`, or `skip` at startup. See [Tool permissions](permissions.md) for approval behavior.
 
 ## Goal loops
 
@@ -65,7 +65,7 @@ Windows Terminal reserves some Alt shortcuts. See [Terminal Setup](terminal-setu
 Type `/` to search the available commands. The commands you will use most often are:
 
 - `/model` selects a model. Press `Ctrl+L` to open the same selector.
-- `/thinking` selects how much reasoning the current model uses. Press `Shift+Tab` to cycle through supported levels.
+- `/thinking` selects how much reasoning the current model uses. Press `Alt+T` to cycle through supported levels.
 - `/login` and `/logout` manage provider access.
 - `/settings` changes common preferences.
 

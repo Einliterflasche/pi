@@ -9,6 +9,7 @@ Extensions, prompt templates, and skills can add commands. The command menu in P
 | Command | Description |
 |---|---|
 | `/settings` | Open settings |
+| `/permissions` | Select the tool permission mode |
 | `/model [provider/model]` | Select a model |
 | `/thinking [level]` | Set the thinking level |
 | `/scoped-models` | Configure the models used by interactive cycling |
@@ -52,6 +53,8 @@ Review a session before exporting or sharing it. Sessions can contain prompts, t
 | `/quit` | Quit Pi |
 
 ## Commands added by resources
+
+The bundled `/goal <objective>` command starts autonomous continuation with active-model evaluation. See [Goal loops](usage.md#goal-loops) for optional limits, status, and pause controls. `--no-extensions` disables this bundled command.
 
 - Extensions can register commands with their own arguments and completion behavior.
 - Each prompt template is available under its template name.

@@ -124,6 +124,8 @@ See [Settings](settings.md#tools) for configuring the default tool selection.
   Disables default built-in tools while retaining extension and custom tools.
 - `-nt`, `--no-tools`<br>
   Starts with all built-in, extension, custom, and MCP tools disabled.
+- `--permission-mode <mode>`<br>
+  Starts in `manual`, `read-only`, `auto-read-only`, `auto`, or `skip` mode. See [Tool permissions](permissions.md).
 
 Default enabled tools are `read`, `bash`, `edit`, and `write`, unless `defaultTools` changes them. `--tools` with plain names replaces the whole selection, so name every tool you want. Like `defaultTools`, it also accepts a list of only `+name` and `-name` entries, which adds tools to or removes them from the default selection: `pi --tools +codemode,-write` keeps the other default tools, enables `codemode`, and disables `write`. These entries take exact tool names, not `*` patterns; use `--exclude-tools` to disable tools by pattern. Plain names and `+name`/`-name` entries cannot be mixed. `/reload` enables tools newly added to `defaultTools`, but a tool removed with `-name` stays removed.
 
