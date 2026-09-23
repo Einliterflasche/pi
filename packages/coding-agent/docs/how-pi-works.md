@@ -10,7 +10,7 @@ A submitted message is added to the active branch. Pi builds a model request fro
 
 The provider streams an assistant response, which can contain text and tool calls. Pi records the response, executes each tool call, and records the results. That completes one turn. If tool results or queued messages require another model request, Pi starts another turn. Otherwise, the run ends.
 
-Steering messages enter after the current assistant turn. Follow-up messages enter after the agent has finished its pending work. Aborting stops the current run and returns queued messages to the editor.
+Steering messages enter after the current assistant turn. Follow-up messages enter after the agent has finished its pending work. Both queues deliver all pending messages by default. Escape aborts the current turn and continues immediately with queued messages. Use `Alt+Up` to return queued messages to the editor.
 
 ## Context
 

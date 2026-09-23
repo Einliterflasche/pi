@@ -30,7 +30,9 @@ Run `/model` to search available models. The picker shows models whose providers
 
 Run `/thinking` to select the thinking level for the current model. Press `Ctrl+S` there to save the startup level. Pi limits the choices to levels supported by the selected model.
 
-`Ctrl+P` cycles through available models. Use `/scoped-models` to control that cycle and save the selection, or configure model patterns through [Settings](settings.md#model-cycling).
+`Ctrl+P` and `Alt+P` open the model selector in this fork. Forward model cycling has no default shortcut. Assign `app.model.cycleForward` through [Keybindings](keybindings.md) to enable it. Use `/scoped-models` or [Settings](settings.md#model-cycling) to select the models available for cycling.
+
+`Alt+A` cycles routing profiles for OpenRouter and OpenAI Codex models. Profiles start off and remain specific to the current runtime. See [Routing Profiles](settings.md#routing-profiles) for provider behavior and selection persistence.
 
 A session records model and thinking-level changes. Resuming the session restores them without changing defaults for new sessions.
 
