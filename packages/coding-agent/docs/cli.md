@@ -124,6 +124,8 @@ See [Settings](settings.md#tools) for configuring the default tool selection.
   Disables default built-in tools while retaining extension and custom tools.
 - `-nt`, `--no-tools`<br>
   Starts with all built-in, extension, and custom tools disabled.
+- `--permission-mode <mode>`<br>
+  Starts in `manual`, `read-only`, `auto-read-only`, `auto`, or `skip` mode. See [Tool permissions](permissions.md).
 
 Default enabled tools are `read`, `bash`, `edit`, and `write`, unless `defaultTools` changes them. `--tools` replaces the whole selection, so name every tool you want; `defaultTools` also accepts `+name` and `-name` to change the defaults instead.
 
