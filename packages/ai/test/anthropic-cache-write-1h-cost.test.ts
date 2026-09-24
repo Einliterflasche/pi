@@ -107,7 +107,8 @@ describe("Anthropic 1h cache write cost", () => {
 
 		expect(result.usage.cacheWrite).toBe(6535);
 		expect(result.usage.cacheWrite1h).toBe(6535);
-		expect(result.usage.cost.cacheWrite).toBeCloseTo((6535 * model.cost.input * 2) / 1_000_000, 10);
+		expect(result.usage.cost).toBeNull();
+		expect(calculateCost(model, result.usage).cacheWrite).toBeCloseTo((6535 * model.cost.input * 2) / 1_000_000, 10);
 	});
 
 	it("falls back to the 5m rate when no breakdown is reported", async () => {
