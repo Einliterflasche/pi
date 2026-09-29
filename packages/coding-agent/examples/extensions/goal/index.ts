@@ -1,5 +1,4 @@
 import type { AssistantMessage, UserMessage } from "@earendil-works/pi-ai";
-import { completeSimple } from "@earendil-works/pi-ai/compat";
 import {
 	buildSessionContext,
 	convertToLlm,
@@ -411,8 +410,6 @@ export default function goalExtension(pi: ExtensionAPI) {
 		ctx.ui.setStatus("goal", "goal evaluating…");
 
 		try {
-			const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
-			if (!auth.ok) throw new Error(auth.error);
 			// Session instructions and tool declarations belong to the worker, not the independent evaluator.
 			const sessionMessages = convertToLlm(buildSessionContext([...ctx.sessionManager.getBranch()]).messages).filter(
 				(message) => message.role !== "system",
@@ -431,18 +428,17 @@ export default function goalExtension(pi: ExtensionAPI) {
 				],
 				timestamp: Date.now(),
 			};
-			const response = await completeSimple(
-				model,
-				{ systemPrompt: EVALUATOR_SYSTEM_PROMPT, messages: [...sessionMessages, evaluatorRequest] },
-				{
-					apiKey: auth.apiKey,
-					headers: auth.headers,
-					env: auth.env,
-					maxTokens: 4096,
-					reasoning: thinkingLevel === "off" ? undefined : thinkingLevel,
-					signal: controller.signal,
-				},
-			);
+			const response = await ctx.modelRegistry
+				.streamSimple(
+					model,
+					{ systemPrompt: EVALUATOR_SYSTEM_PROMPT, messages: [...sessionMessages, evaluatorRequest] },
+					{
+						maxTokens: 4096,
+						reasoning: thinkingLevel === "off" ? undefined : thinkingLevel,
+						signal: controller.signal,
+					},
+				)
+				.result();
 			if (evaluatorController === controller) {
 				evaluatorController = undefined;
 				updateStatus(ctx);

@@ -204,6 +204,49 @@ describe("goal extension", () => {
 		expect(latestGoalState(harness)?.status).toBe("completed");
 	});
 
+	it("routes virtual goal evaluation through the configured provider", async () => {
+		const harness = await createHarness({
+			models: [{ id: "evaluator", reasoning: true }],
+			extensionFactories: [goalExtension],
+		});
+		harnesses.push(harness);
+		await bindHarness(harness, "print");
+		const requests: string[] = [];
+		harness.session.modelRuntime.registerVirtualModel({
+			provider: "router",
+			id: "auto",
+			name: "Auto",
+			thinkingLevels: ["high"],
+			route: (request) => {
+				requests.push(request.reason);
+				return { model: harness.getModel(), thinkingLevel: "medium" };
+			},
+		});
+		const virtual = harness.session.modelRuntime.getModel("router", "auto");
+		if (!virtual) throw new Error("Expected virtual model");
+		await harness.session.setModel(virtual);
+		harness.session.setThinkingLevel("high");
+		harness.setResponses([
+			fauxAssistantMessage("finished"),
+			(_context, options, _state, model) => {
+				expect(model.id).toBe("evaluator");
+				expect((options as { reasoning?: string }).reasoning).toBe("medium");
+				return fauxAssistantMessage(
+					'{"complete":true,"madeProgress":true,"blocked":false,"progress":"done","reason":"verified"}',
+				);
+			},
+		]);
+		await harness.session.prompt("/goal finish once");
+		expect(latestGoalState(harness)?.status).toBe("completed");
+		expect(latestGoalState(harness)?.lastEvaluation?.evaluator).toEqual({
+			provider: "router",
+			model: "auto",
+			thinkingLevel: "high",
+		});
+		expect(requests).toContain("direct");
+		expect(harness.getPendingResponseCount()).toBe(0);
+	});
+
 	it("waits for the goal loop in headless mode", async () => {
 		const harness = await createHarness({ extensionFactories: [goalExtension] });
 		harnesses.push(harness);
