@@ -1,9 +1,12 @@
 import {
 	fauxAssistantMessage,
+	fauxToolCall,
 	getCurrentSystemPrompt,
 	getCurrentTools,
+	type Message,
 	type TranscriptContext,
 } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 import { afterEach, describe, expect, it } from "vitest";
 import { createHarness, type Harness } from "./harness.ts";
 
@@ -14,6 +17,60 @@ describe("AgentSession permission modes", () => {
 		harness?.cleanup();
 		harness = undefined;
 	});
+
+	it.each(["auto", "auto-read-only"] as const)(
+		"routes virtual models for %s permission decisions and keeps evaluator context separate",
+		async (mode) => {
+			let executions = 0;
+			harness = await createHarness({
+				tools: [
+					{
+						name: "inspect",
+						label: "Inspect",
+						description: "Inspect without side effects",
+						parameters: Type.Object({}),
+						execute: async () => {
+							executions++;
+							return { content: [{ type: "text", text: "inspected" }], details: {} };
+						},
+					},
+				],
+			});
+			const physical = harness.getModel();
+			const directRequests: (readonly Message[])[] = [];
+			harness.session.modelRuntime.registerVirtualModel({
+				provider: "router",
+				id: "auto",
+				name: "Auto",
+				route: (request) => {
+					if (request.reason === "direct") directRequests.push(request.messages);
+					return { model: physical, thinkingLevel: "off" };
+				},
+			});
+			const virtual = harness.session.modelRuntime.getModel("router", "auto");
+			if (!virtual) throw new Error("Expected virtual model");
+			await harness.session.setModel(virtual);
+			harness.session.enablePermissions(undefined, mode);
+			harness.setResponses([
+				fauxAssistantMessage(fauxToolCall("inspect", {}), { stopReason: "toolUse" }),
+				fauxAssistantMessage('{"approved":true}'),
+				fauxAssistantMessage(fauxToolCall("inspect", {}), { stopReason: "toolUse" }),
+				fauxAssistantMessage('{"approved":false,"reason":"not authorized"}'),
+				fauxAssistantMessage("done"),
+			]);
+			await harness.session.prompt("Inspect once");
+			expect(executions).toBe(1);
+			expect(directRequests).toHaveLength(2);
+			for (const request of directRequests) {
+				expect(getCurrentSystemPrompt(request)).toContain("You are a tool permission classifier");
+				expect(getCurrentTools(request)).toEqual([]);
+				expect(request.filter((message) => message.role === "user")).toEqual([
+					expect.objectContaining({ content: [{ type: "text", text: "Inspect once" }] }),
+				]);
+			}
+			expect(harness.getPendingResponseCount()).toBe(0);
+		},
+	);
 
 	it("restricts strict read-only mode and restores the previous active tools", async () => {
 		harness = await createHarness();
