@@ -686,11 +686,10 @@ ${JSON.stringify({
 			content: [{ type: "text", text }],
 			timestamp: Date.now(),
 		}));
-		const auth = await this._getRequiredRequestAuth(model);
-		const stream = streamSimple(
+		const stream = this._modelRuntime.streamSimple(
 			model,
 			{ messages: [{ role: "system", content: policy, timestamp: Date.now() }, ...userMessages] },
-			{ ...auth, signal, maxRetries: 0 },
+			{ signal, maxRetries: 0 },
 		);
 		const response = await stream.result();
 		if (response.stopReason === "error" || response.stopReason === "aborted") {
