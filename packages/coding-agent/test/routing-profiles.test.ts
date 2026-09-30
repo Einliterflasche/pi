@@ -12,7 +12,7 @@ describe("routing profiles", () => {
 	let session: AgentSession;
 
 	beforeEach(async () => {
-		const openRouterModel = getModel("openrouter", "anthropic/claude-3-haiku");
+		const openRouterModel = getModel("openrouter", "anthropic/claude-sonnet-4");
 		const anthropicModel = getModel("anthropic", "claude-fable-5");
 		const codexModel = getModel("openai-codex", "gpt-5.5");
 		if (!openRouterModel || !anthropicModel || !codexModel) throw new Error("Required test models are unavailable");
