@@ -78,7 +78,7 @@ function usage(input: number, cost: number): Usage {
 		cacheRead: 0,
 		cacheWrite: 0,
 		totalTokens: input,
-		cost: { input: cost, output: 0, cacheRead: 0, cacheWrite: 0, total: cost },
+		cost: { input: cost, output: 0, cacheRead: 0, cacheWrite: 0, total: cost, source: "reported" },
 	};
 }
 
@@ -742,7 +742,7 @@ describe("codemode models", () => {
 							provider: model.provider,
 							model: model.id,
 							answers: { approved: { type: "bool", probability: text === "good" ? 0.9 : 0.1 } },
-							usage: usage(300, 0.001),
+							usage: text === "untracked" ? { ...usage(300, 0.001), cost: null } : usage(300, 0.001),
 							stopReason: "stop",
 							timestamp: 0,
 						};
@@ -823,7 +823,7 @@ describe("codemode models", () => {
 		);
 		// The classifications' usage becomes the codemode result's usage.
 		expect(result.usage?.input).toBe(1800);
-		expect(result.usage?.cost.total).toBeCloseTo(0.006, 10);
+		expect(result.usage?.cost?.total).toBeCloseTo(0.006, 10);
 		expect(harness.session.getSessionStats().cost).toBeCloseTo(0.006, 10);
 	});
 
@@ -880,7 +880,7 @@ describe("codemode models", () => {
 			["models.generateImages", "scorer/painter", "ok", 0.04, undefined],
 			["models.generateImages", "scorer/painter", "error", undefined, "painter exploded"],
 		]);
-		expect(result.usage?.cost.total).toBeCloseTo(0.04, 10);
+		expect(result.usage?.cost?.total).toBeCloseTo(0.04, 10);
 		expect(harness.session.getSessionStats().cost).toBeCloseTo(0.04, 10);
 	});
 
@@ -898,6 +898,26 @@ describe("codemode models", () => {
 		expect(resultText(result)).toBe(
 			"stop\nNote: models.generateImages() returned 1 image that the script did not show. Show each image block of result.output with image(block).",
 		);
+	});
+
+	it("keeps classifier results and token usage when billing is unavailable", async () => {
+		const { harness } = await setup();
+		const result = await run(
+			harness,
+			`
+			const model = await models.getModelOfType("classifier", "scorer", "judge");
+			const first = await models.classify(model, { state: { text: "good" }, questions: ${questions} });
+			const second = await models.classify(model, { state: { text: "untracked" }, questions: ${questions} });
+			return [first.stopReason, second.stopReason, second.usage.cost];
+		`,
+		);
+		expect(result.isError).toBe(false);
+		expect(JSON.parse(resultText(result))).toEqual(["stop", "stop", null]);
+		expect(result.usage).toMatchObject({ input: 600, totalTokens: 600, cost: null });
+		expect((result.details as unknown as CodemodeToolDetails).calls.map((call) => call.cost)).toEqual([
+			0.001,
+			undefined,
+		]);
 	});
 
 	it("reports provider errors as results and invalid arguments as exceptions", async () => {

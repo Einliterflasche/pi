@@ -108,8 +108,8 @@ function tokenCount(value: unknown): number {
 }
 
 /**
- * Usage from a `{ input_tokens, output_tokens }` object, priced from the model catalog like chat
- * usage. A missing or malformed usage object leaves the result without usage instead of failing it.
+ * Usage from a classifier's `{ input_tokens, output_tokens }`. Only OpenRouter gets cost accounting.
+ * A missing or malformed usage object leaves the result without usage instead of failing it.
  */
 export function parseClassifierUsage(value: unknown, model: ClassifierModel<ClassifierApi>): Usage | undefined {
 	if (!isRecord(value) || (value.input_tokens === undefined && value.output_tokens === undefined)) return undefined;
@@ -121,8 +121,22 @@ export function parseClassifierUsage(value: unknown, model: ClassifierModel<Clas
 		cacheRead: 0,
 		cacheWrite: 0,
 		totalTokens: input + output,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+		cost: null,
 	};
-	calculateCost(model, usage);
+	if (model.provider === "openrouter" || model.baseUrl.includes("openrouter.ai")) {
+		const cost = calculateCost(model, usage);
+		if (typeof value.cost === "number" && Number.isFinite(value.cost)) {
+			if (cost.total > 0) {
+				const scale = value.cost / cost.total;
+				cost.input *= scale;
+				cost.output *= scale;
+				cost.cacheRead *= scale;
+				cost.cacheWrite *= scale;
+			}
+			cost.total = value.cost;
+			cost.source = "reported";
+		}
+		usage.cost = cost;
+	}
 	return usage;
 }

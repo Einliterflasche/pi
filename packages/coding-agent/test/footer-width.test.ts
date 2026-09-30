@@ -12,7 +12,7 @@ type AssistantUsage = {
 	output: number;
 	cacheRead: number;
 	cacheWrite: number;
-	cost: { total: number };
+	cost: { total: number; source?: "reported" | "estimated" } | null;
 };
 
 function createSession(options: {
@@ -226,6 +226,30 @@ describe("FooterComponent width handling", () => {
 
 		session.sessionManager.getEntries().push({ type: "message", message: { role: "assistant", usage } } as never);
 		expect(stripAnsi(footer.render(120)[1])).toContain("↑20 ↓2");
+	});
+
+	it("caches reported costs from nested tools and updates them after append", () => {
+		const reported: AssistantUsage = {
+			input: 10,
+			output: 1,
+			cacheRead: 0,
+			cacheWrite: 0,
+			cost: { total: 0.25, source: "reported" },
+		};
+		const session = createSession({
+			sessionName: "",
+			toolUsage: reported,
+			branchUsage: { ...reported, cost: { total: 4, source: "estimated" } },
+			compactionUsage: { ...reported, cost: null },
+		});
+		const footer = new FooterComponent(session, createFooterData(1));
+		expect(stripAnsi(footer.render(120)[1])).toContain("$0.250");
+		expect(stripAnsi(footer.render(120)[1])).toContain("$0.250");
+		session.sessionManager.getEntries().push({
+			type: "message",
+			message: { role: "toolResult", usage: reported },
+		} as never);
+		expect(stripAnsi(footer.render(120)[1])).toContain("$0.500");
 	});
 
 	it("shows only input, output, and compact context usage on the left", () => {

@@ -47,11 +47,16 @@ export function addUsage(total: Draft<Usage> | Usage, usage: Usage): void {
 	total.totalTokens += usage.totalTokens;
 	if (usage.cacheWrite1h !== undefined) total.cacheWrite1h = (total.cacheWrite1h ?? 0) + usage.cacheWrite1h;
 	if (usage.reasoning !== undefined) total.reasoning = (total.reasoning ?? 0) + usage.reasoning;
+	if (!total.cost || !usage.cost) {
+		total.cost = null;
+		return;
+	}
 	total.cost.input += usage.cost.input;
 	total.cost.output += usage.cost.output;
 	total.cost.cacheRead += usage.cost.cacheRead;
 	total.cost.cacheWrite += usage.cost.cacheWrite;
 	total.cost.total += usage.cost.total;
+	if (usage.cost.source !== "reported") total.cost.source = "estimated";
 }
 
 /** Add every bucket of `state` into `sum`. */
