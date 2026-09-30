@@ -1767,6 +1767,7 @@ ${JSON.stringify({
 	 */
 	private _getCallableTools(active: ReadonlySet<string> = new Set(this.getActiveToolNames())): AgentTool[] {
 		return [...this._toolRegistry.values()].filter((tool) => {
+			if (!this._isToolAvailable(tool.name)) return false;
 			const exposure = this._getToolExposure(tool.name);
 			return exposure === "codemode" || exposure === "deferred" || (exposure === "direct" && active.has(tool.name));
 		});
