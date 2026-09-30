@@ -583,7 +583,7 @@ function createModelGlobals(
 		record.status = result.stopReason === "stop" ? "ok" : result.stopReason === "aborted" ? "cancelled" : "error";
 		if (result.errorMessage) record.error = truncateText(result.errorMessage, ERROR_PREVIEW_CHARS);
 		if (result.usage) {
-			record.cost = result.usage.cost.total;
+			record.cost = result.usage.cost?.total;
 			addUsage(result.usage);
 		}
 		publish();

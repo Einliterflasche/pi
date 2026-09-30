@@ -77,7 +77,7 @@ describe("TypeSafe System One", () => {
 		expect(result.answers.satisfaction).toEqual({ type: "score", score: 2, confidence: 0.7 });
 		expect(result.usage).toBeUndefined();
 		expect(pricedResult.usage).toMatchObject({ input: 308, output: 23, totalTokens: 331 });
-		expect(pricedResult.usage?.cost.total).toBeCloseTo(0.000012936, 12);
+		expect(pricedResult.usage?.cost).toBeNull();
 	});
 
 	it("posts OpenRouter System One requests to its TypeSafe-compatible endpoint", async () => {
@@ -88,7 +88,7 @@ describe("TypeSafe System One", () => {
 				id: "gen-dec-1",
 				provider: "TypeSafe",
 				answers: wireAnswers,
-				usage: { input_tokens: 308, output_tokens: 23, cost: 0.000012936 },
+				usage: { input_tokens: 308, output_tokens: 23, cost: 0.00002 },
 			});
 		});
 		const openRouterModel = {
@@ -104,8 +104,28 @@ describe("TypeSafe System One", () => {
 		expect(String(fetch.mock.calls[0]?.[0])).toBe("https://openrouter.ai/api/v1/systemone");
 		expect(result.stopReason).toBe("stop");
 		expect(result.answers.approved).toEqual({ type: "bool", probability: 0.95 });
-		// Priced from the catalog like chat usage; matches OpenRouter's reported cost.
-		expect(result.usage?.cost.total).toBeCloseTo(0.000012936, 12);
+		expect(result.usage?.cost).toMatchObject({ total: 0.00002, source: "reported" });
+		expect(result.usage?.cost?.input).toBeCloseTo(0.00002, 12);
+	});
+
+	it.each([undefined, "invalid", 0])("uses an estimate only without a numeric reported cost: %s", async (cost) => {
+		const result = await classify(
+			{
+				...model,
+				provider: "custom-openrouter",
+				baseUrl: "https://openrouter.ai/api/v1",
+				cost: { ...model.cost, input: 0.042 },
+			},
+			context,
+			{
+				apiKey: "secret",
+				fetch: async () =>
+					Response.json({ answers: wireAnswers, usage: { input_tokens: 308, output_tokens: 23, cost } }),
+			},
+		);
+		expect(result.stopReason).toBe("stop");
+		expect(result.usage?.cost?.source).toBe(cost === 0 ? "reported" : "estimated");
+		expect(result.usage?.cost?.total).toBeCloseTo(cost === 0 ? 0 : 0.000012936, 12);
 	});
 
 	it("rejects models for other classifier APIs", async () => {

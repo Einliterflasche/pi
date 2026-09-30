@@ -129,7 +129,7 @@ type ClassifierAnswer =
   | { type: "bool"; probability: number };
 
 /** Token counts and cost in USD, when the service reports them. */
-type ModelUsage = { input: number; output: number; totalTokens: number; cost: { total: number } };
+type ModelUsage = { input: number; output: number; totalTokens: number; cost: { total: number; source: "reported" | "estimated" } | null };
 ```
 
 Classify several items by calling `classify()` once per item. This script sorts feedback messages, for example ones a tool returned earlier in the script:

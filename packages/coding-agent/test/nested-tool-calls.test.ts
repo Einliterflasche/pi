@@ -17,7 +17,7 @@ function usage(input: number, cost: number): Usage {
 		cacheRead: 0,
 		cacheWrite: 0,
 		totalTokens: input,
-		cost: { input: cost, output: 0, cacheRead: 0, cacheWrite: 0, total: cost },
+		cost: { input: cost, output: 0, cacheRead: 0, cacheWrite: 0, total: cost, source: "reported" },
 	};
 }
 
@@ -157,7 +157,8 @@ describe("NestedToolCallRunner", () => {
 
 		const summary = runner.takeRecord("call");
 		expect(summary?.usage?.input).toBe(25);
-		expect(summary?.usage?.cost.total).toBeCloseTo(0.025, 10);
+		expect(summary?.usage?.cost?.total).toBeCloseTo(0.025, 10);
+		expect(summary?.usage?.cost?.source).toBe("reported");
 		expect(runner.takeRecord("free")).toMatchObject({ calls: { complete: true }, usage: undefined });
 	});
 
@@ -188,6 +189,20 @@ describe("NestedToolCallRunner", () => {
 });
 
 describe("NestedCallRecorder", () => {
+	it.each([null, "estimated", "reported"] as const)("preserves nullable billing when combining %s costs", (source) => {
+		const recorder = new NestedCallRecorder();
+		recorder.addUsage({ ...usage(10, 0.01), cacheWrite1h: 2, reasoning: 3 });
+		const second = usage(5, 0.005);
+		second.cost = source === null ? null : { ...second.cost!, source };
+		recorder.addUsage(second);
+		expect(recorder.totalUsage).toMatchObject({ input: 15, totalTokens: 15, cacheWrite1h: 2, reasoning: 3 });
+		if (source === null) expect(recorder.totalUsage?.cost).toBeNull();
+		else {
+			expect(recorder.totalUsage?.cost?.total).toBeCloseTo(0.015);
+			expect(recorder.totalUsage?.cost?.source).toBe(source);
+		}
+	});
+
 	const call = (id: string, args: AgentToolCall["arguments"]): AgentToolCall => ({
 		type: "toolCall",
 		id,
