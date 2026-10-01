@@ -7,6 +7,7 @@
  */
 
 import type { WriteStream } from "node:fs";
+import { finished } from "node:stream/promises";
 import { splitIncompleteAnsiSuffix, stripAnsi } from "../utils/ansi.ts";
 import { createOutputFileStream } from "../utils/output-files.ts";
 import { sanitizeBinaryOutput } from "../utils/shell.ts";
@@ -116,31 +117,37 @@ export async function executeBashWithOperations(
 		appendText(rest);
 	};
 
-	let exitCode: number | null = null;
 	try {
-		({ exitCode } = await operations.exec(command, cwd, { onData, signal: options?.signal }));
-	} catch (err) {
-		// An aborted command still returns the output it produced so far
-		if (!options?.signal?.aborted) {
-			tempFileStream?.end();
-			throw err;
+		let exitCode: number | null = null;
+		try {
+			({ exitCode } = await operations.exec(command, cwd, { onData, signal: options?.signal }));
+		} catch (err) {
+			// An aborted command still returns the output it produced so far
+			if (!options?.signal?.aborted) {
+				throw err;
+			}
+		}
+
+		flushOutput();
+		const fullOutput = outputChunks.join("");
+		const truncationResult = truncateTail(fullOutput);
+		if (truncationResult.truncated) {
+			ensureTempFile();
+		}
+		const cancelled = options?.signal?.aborted ?? false;
+
+		return {
+			output: truncationResult.truncated ? truncationResult.content : fullOutput,
+			exitCode: cancelled ? undefined : (exitCode ?? undefined),
+			cancelled,
+			truncated: truncationResult.truncated,
+			fullOutputPath: tempFilePath,
+		};
+	} finally {
+		if (tempFileStream) {
+			const completion = finished(tempFileStream, { cleanup: true });
+			tempFileStream.end();
+			await completion;
 		}
 	}
-
-	flushOutput();
-	const fullOutput = outputChunks.join("");
-	const truncationResult = truncateTail(fullOutput);
-	if (truncationResult.truncated) {
-		ensureTempFile();
-	}
-	tempFileStream?.end();
-	const cancelled = options?.signal?.aborted ?? false;
-
-	return {
-		output: truncationResult.truncated ? truncationResult.content : fullOutput,
-		exitCode: cancelled ? undefined : (exitCode ?? undefined),
-		cancelled,
-		truncated: truncationResult.truncated,
-		fullOutputPath: tempFilePath,
-	};
 }
