@@ -57,7 +57,10 @@ describe("experimental client prompt completion", () => {
 			runtime.completion.resolve({ status: "done", text: "complete answer", reason: null });
 		}
 		await expect(result).resolves.toEqual({
-			kind: "prompted", serverId: "server", sessionId: "session", text: "complete answer",
+			kind: "prompted",
+			serverId: "server",
+			sessionId: "session",
+			text: "complete answer",
 		});
 		expect(runtime.waitForPrompt).toHaveBeenCalledWith("42", expect.anything());
 		expect(runtime.dispose).toHaveBeenCalledOnce();
