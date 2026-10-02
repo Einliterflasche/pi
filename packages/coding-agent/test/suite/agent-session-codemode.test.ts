@@ -711,7 +711,7 @@ describe("codemode models", () => {
 								{ type: "text", text: `painted ${prompt}` },
 								{ type: "image", data: TINY_PNG_BASE64, mimeType: "image/png" },
 							],
-							usage: usage(100, 0.04),
+							usage: prompt === "untracked" ? { ...usage(100, 0.04), cost: null } : usage(100, 0.04),
 							stopReason: "stop",
 						};
 					},
@@ -898,6 +898,24 @@ describe("codemode models", () => {
 		expect(resultText(result)).toBe(
 			"stop\nNote: models.generateImages() returned 1 image that the script did not show. Show each image block of result.output with image(block).",
 		);
+	});
+
+	it("keeps generated images and token usage when billing is unavailable", async () => {
+		const { harness } = await setup();
+		const result = await run(
+			harness,
+			`
+			const model = await models.getModelOfType("image", "scorer", "painter");
+			const result = await models.generateImages(model, { input: [{ type: "text", text: "untracked" }] });
+			for (const block of result.output) if (block.type === "image") image(block);
+			return [result.stopReason, result.usage.cost];
+		`,
+		);
+		expect(result.isError).toBe(false);
+		expect(result.content).toContainEqual({ type: "image", data: TINY_PNG_BASE64, mimeType: "image/png" });
+		expect(resultText(result)).toContain('["stop",null]');
+		expect(result.usage).toMatchObject({ input: 100, totalTokens: 100, cost: null });
+		expect((result.details as unknown as CodemodeToolDetails).calls[0].cost).toBeUndefined();
 	});
 
 	it("keeps classifier results and token usage when billing is unavailable", async () => {

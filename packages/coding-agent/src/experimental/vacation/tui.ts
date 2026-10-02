@@ -1,4 +1,4 @@
-import type { AssistantMessage, ToolResultMessage, Usage, UserMessage } from "@earendil-works/pi-ai";
+import type { AssistantMessage, ToolResultMessage, UserMessage } from "@earendil-works/pi-ai";
 import type {
 	ConversationId,
 	EntryRecord,
@@ -381,7 +381,7 @@ class DurableTui {
 		if (usage.output) stats.push(`↓${formatTokens(usage.output)}`);
 		if (usage.cacheRead) stats.push(`R${formatTokens(usage.cacheRead)}`);
 		if (usage.cacheWrite) stats.push(`W${formatTokens(usage.cacheWrite)}`);
-		stats.push(`$${usage.cost.total.toFixed(3)}`);
+		stats.push(`$${usage.totalCost.toFixed(3)}`);
 		const contextWindow =
 			view.models.find((model) => model.provider === agent.model?.provider && model.modelId === agent.model.modelId)
 				?.contextWindow ?? 0;
@@ -527,21 +527,20 @@ function userText(content: UserMessage["content"]): string {
 		.join("");
 }
 
-function totalUsage(state: UsageState): Usage {
-	const total: Usage = {
+function totalUsage(state: UsageState) {
+	const total = {
 		input: 0,
 		output: 0,
 		cacheRead: 0,
 		cacheWrite: 0,
-		totalTokens: 0,
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+		totalCost: 0,
 	};
 	for (const usage of [...Object.values(state.models), ...Object.values(state.tools)]) {
 		total.input += usage.input;
 		total.output += usage.output;
 		total.cacheRead += usage.cacheRead;
 		total.cacheWrite += usage.cacheWrite;
-		total.cost.total += usage.cost.total;
+		total.totalCost += usage.cost?.total ?? 0;
 	}
 	return total;
 }
