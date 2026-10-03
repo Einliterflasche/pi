@@ -110,6 +110,7 @@ describe("Cloudflare Workers AI System One", () => {
 		const { models } = setup();
 		const clef = models.getModelOfType("classifier", "cloudflare-workers-ai", id);
 		if (!clef) throw new Error(`missing Cloudflare ${id} model`);
+		expect(clef.cost.input).toBe(inputPrice);
 		const fetch = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
 			const payload = JSON.parse(String(init?.body)) as {
 				model: string;
@@ -128,7 +129,7 @@ describe("Cloudflare Workers AI System One", () => {
 		expect(result.answers.is_urgent).toEqual({ type: "bool", probability: 0.9912 });
 		expect(result.answers.department).toMatchObject({ type: "choice", choice: "technical", confidence: 0.4538 });
 		expect(result.usage).toMatchObject({ input: 222, output: 0, totalTokens: 222 });
-		expect(result.usage?.cost.input).toBeCloseTo((222 * inputPrice) / 1_000_000);
+		expect(result.usage?.cost).toBeNull();
 	});
 
 	it("reports runs that did not complete", async () => {
