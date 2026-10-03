@@ -8,6 +8,16 @@
 - Added `oauth.clientRegistration: "cimd"` for MCP servers, which identifies pi with its Client ID Metadata Document on pi.dev instead of dynamic client registration, so authorization servers can allow pi by URL ([#10302](https://github.com/earendil-works/pi/issues/10302))
 - Added project overrides for user-level MCP servers: a `.pi/mcp.json` entry without `command` or `url` sets only `enabled`, `exposure`, and `toolExposure` of the user-level server, and `/mcp` can enable or disable a server for the current project ([#10277](https://github.com/earendil-works/pi/issues/10277))
 - Added Cloudflare's Clef and Clef Flash classifier models to `cloudflare-workers-ai`, usable from codemode scripts and extensions ([#10316](https://github.com/earendil-works/pi/pull/10316) by [@ndisidore](https://github.com/ndisidore), [#10322](https://github.com/earendil-works/pi/pull/10322) by [@RealAlexandreAI](https://github.com/RealAlexandreAI))
+- Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
+- Added Zellij-aware `/fork`, opening persisted forks in a new pane in the same tab while keeping the original session active.
+- Added strict and classifier-backed read-only permission modes with distinct mode indicators.
+- Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
+- Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
+- Added named OpenRouter routing profiles via the `openRouterRoutingProfiles` setting, cycleable at runtime with `alt+a` (`app.routing.cycle`) and shown in the footer; built-in `fast` and `cheap` profiles apply when unset, and the active profile overrides per-model routing for the current session.
+- Added a `fast` routing profile for OpenAI Codex models that sends the priority service tier, with runtime-only profile selections cached per provider/model.
+- Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
+- Added an optional installer-managed VoxType extension for hold-Space voice dictation in terminals with key-release support.
+- Added an explicit `render` result option for extension terminal-input handlers that consume input after changing visible state.
 
 ### Changed
 
@@ -23,22 +33,6 @@
 - Fixed a trailing comma in `--models` adding an extra model to the model cycle ([#10334](https://github.com/earendil-works/pi/issues/10334))
 - Fixed a `codemode` script that prints in a loop crashing pi by running out of memory: a script fails once its output passes 16 Mi characters or 100000 items ([#10283](https://github.com/earendil-works/pi/issues/10283))
 - Fixed JPEG, GIF, and WebP images rendered by extensions through `Image` not appearing in Kitty, Ghostty, WezTerm, and Warp ([#10292](https://github.com/earendil-works/pi/issues/10292))
-
-### Added
-
-- Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
-- Added Zellij-aware `/fork`, opening persisted forks in a new pane in the same tab while keeping the original session active.
-- Added strict and classifier-backed read-only permission modes with distinct mode indicators.
-- Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
-- Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
-- Added named OpenRouter routing profiles via the `openRouterRoutingProfiles` setting, cycleable at runtime with `alt+a` (`app.routing.cycle`) and shown in the footer; built-in `fast` and `cheap` profiles apply when unset, and the active profile overrides per-model routing for the current session.
-- Added a `fast` routing profile for OpenAI Codex models that sends the priority service tier, with runtime-only profile selections cached per provider/model.
-- Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
-- Added an optional installer-managed VoxType extension for hold-Space voice dictation in terminals with key-release support.
-- Added an explicit `render` result option for extension terminal-input handlers that consume input after changing visible state.
-
-### Fixed
-
 - Fixed permission mode indicators remaining on the hidden default editor when an extension installs a custom editor.
 
 ### Breaking Changes
