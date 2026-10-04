@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added `StreamOptions.openRouterRouting`, a request-level OpenRouter routing override merged over the model's `openRouterRouting` compat for OpenRouter targets.
+
 ### Fixed
 
 - Fixed Mistral streams being aborted mid-generation (e.g. during long thinking) after the request timeout; the timeout now applies only to waiting for response headers ([#10609](https://github.com/earendil-works/pi/issues/10609))
@@ -68,7 +72,6 @@
 
 ### Added
 
-- Added `StreamOptions.openRouterRouting`, a request-level OpenRouter routing override merged over the model's `openRouterRouting` compat for OpenRouter targets.
 - Added Cloudflare's Clef and Clef Flash classifier models (`@cf/cloudflare/clef`, `@cf/cloudflare/clef-flash`) to the `cloudflare-workers-ai` provider ([#10316](https://github.com/earendil-works/pi/pull/10316) by [@ndisidore](https://github.com/ndisidore), [#10322](https://github.com/earendil-works/pi/pull/10322) by [@RealAlexandreAI](https://github.com/RealAlexandreAI))
 
 ### Changed

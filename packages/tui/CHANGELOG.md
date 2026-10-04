@@ -9,6 +9,7 @@
 ### Added
 
 - Added `renderFakeCursor()`. Components wrap their drawn cursor with it, and the TUI renders it in reverse video, or omits it after `CURSOR_MARKER` when `showHardwareCursor` is enabled
+- Added negotiated Kitty keyboard-protocol flag reporting so clients can require key-release support safely.
 
 ### Changed
 
@@ -17,6 +18,7 @@
 ### Fixed
 
 - Fixed overlay compositing dropping `CURSOR_MARKER` when an overlay ends directly left of the cursor, which lost the hardware cursor position
+- Fixed visual updates made by terminal input listeners remaining hidden when the listener consumes the input and returns `render: true`, without repainting consumed no-op input.
 
 ## [1.1.0] - 2026-10-07
 
@@ -49,13 +51,11 @@
 ### Added
 
 - Added `setImageTranscoder()`, which lets `Image` convert JPEG, GIF, and WebP images to PNG for the Kitty graphics protocol ([#10292](https://github.com/earendil-works/pi/issues/10292))
-- Added negotiated Kitty keyboard-protocol flag reporting so clients can require key-release support safely.
 
 ### Fixed
 
 - Fixed non-PNG images rendering as nothing on Kitty-protocol terminals: without a registered transcoder, or when conversion fails, `Image` now shows its text fallback ([#10292](https://github.com/earendil-works/pi/issues/10292))
 - Fixed fullscreen Kitty images collapsing to a one-row strip after scrolling in WezTerm ([#10319](https://github.com/earendil-works/pi/issues/10319)).
-- Fixed visual updates made by terminal input listeners remaining hidden when the listener consumes the input and returns `render: true`, without repainting consumed no-op input.
 
 ## [1.0.0] - 2026-10-01
 
