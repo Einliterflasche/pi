@@ -5,6 +5,21 @@
 ### Breaking Changes
 
 - Moved the published theme JSON Schema to `schemas/theme.schema.json` and made theme loading reject unknown top-level properties and unknown properties under `colors` or `export`. Update existing theme `$schema` references to the new path, define reusable custom colors under `vars`, and remove unsupported metadata.
+- Changed steering and follow-up queues to batch all pending messages by default, and changed interruption to continue immediately with the queued batch instead of restoring it to the editor.
+- Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
+
+### Added
+
+- Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
+- Added Zellij-aware `/fork`, opening persisted forks in a new pane in the same tab while keeping the original session active.
+- Added strict and classifier-backed read-only permission modes with distinct mode indicators.
+- Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
+- Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
+- Added named OpenRouter routing profiles via the `openRouterRoutingProfiles` setting, cycleable at runtime with `alt+a` (`app.routing.cycle`) and shown in the footer; built-in `fast` and `cheap` profiles apply when unset, and the active profile overrides per-model routing for the current session.
+- Added a `fast` routing profile for OpenAI Codex models that sends the priority service tier, with runtime-only profile selections cached per provider/model.
+- Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
+- Added an optional installer-managed VoxType extension for hold-Space voice dictation in terminals with key-release support.
+- Added an explicit `render` result option for extension terminal-input handlers that consume input after changing visible state.
 
 ### Changed
 
@@ -13,6 +28,7 @@
 ### Fixed
 
 - Fixed Mistral streams being aborted mid-generation (e.g. during long thinking) after the request timeout; the timeout now applies only to waiting for response headers ([#10609](https://github.com/earendil-works/pi/issues/10609))
+- Fixed permission mode indicators remaining on the hidden default editor when an extension installs a custom editor.
 
 ## [1.1.0] - 2026-10-07
 
@@ -35,16 +51,6 @@
 - Added `aborted` to `agent_settled` session, extension, and JSON events, so integrations can tell a cancelled run from a finished one ([#10607](https://github.com/earendil-works/pi/issues/10607))
 - Added Claude Haiku 5.5 (`anthropic/claude-haiku-5-5`), with adaptive thinking up to `xhigh`/`max` effort and prompt caching on Bedrock
 - Added native llama.cpp decision models: Julia-1, Laya, Kev, lev, and OpenJev served by llama.cpp 0.6.0 or later are listed only as classifiers through `/v1/systemone` instead of as chat models (see [Classification](docs/llama-cpp.md#classification)) ([#10382](https://github.com/earendil-works/pi/pull/10382))
-- Added automatic discovery of trusted project Claude Code skills from `.claude/skills/` in the working directory and project ancestors.
-- Added Zellij-aware `/fork`, opening persisted forks in a new pane in the same tab while keeping the original session active.
-- Added strict and classifier-backed read-only permission modes with distinct mode indicators.
-- Added bundled isolated subagents with built-in agent profiles, workflow prompts, active-model inheritance, parent permission-mode inheritance, and separate user-authorization versus assistant-delegation provenance.
-- Added a persisted `/goal` workflow with active-model evaluation, a temporary evaluator status indicator, permission-preserving continuations, pause/resume controls, and optional turn, token, and time limits.
-- Added named OpenRouter routing profiles via the `openRouterRoutingProfiles` setting, cycleable at runtime with `alt+a` (`app.routing.cycle`) and shown in the footer; built-in `fast` and `cheap` profiles apply when unset, and the active profile overrides per-model routing for the current session.
-- Added a `fast` routing profile for OpenAI Codex models that sends the priority service tier, with runtime-only profile selections cached per provider/model.
-- Added an `input_received` extension event for immediate notification before command handling and asynchronous input preprocessing.
-- Added an optional installer-managed VoxType extension for hold-Space voice dictation in terminals with key-release support.
-- Added an explicit `render` result option for extension terminal-input handlers that consume input after changing visible state.
 
 ### Changed
 
@@ -75,12 +81,6 @@
 - Fixed Anthropic browser login failing with "localhost refused to connect" when port 53692 is reserved or in use, for example by Hyper-V/WSL port exclusions on Windows: login now falls back to a free loopback port ([#10571](https://github.com/earendil-works/pi/issues/10571))
 - Fixed session costs undercounting long prompts on models with prompt-length pricing tiers, such as Claude Haiku 5.5, Gemini 3.1 Pro, and GPT-5.4, through OpenCode, OpenCode Go, OpenRouter, Vercel AI Gateway, Google, MiniMax, and other providers
 - Fixed Markdown links not being clickable in Herdr ([#10573](https://github.com/earendil-works/pi/issues/10573))
-- Fixed permission mode indicators remaining on the hidden default editor when an extension installs a custom editor.
-
-### Breaking Changes
-
-- Changed steering and follow-up queues to batch all pending messages by default, and changed interruption to continue immediately with the queued batch instead of restoring it to the editor.
-- Removed the `enableInstallTelemetry`, `enableAnalytics`, and `trackingId` settings and related public settings/setup APIs. This fork no longer sends install/update telemetry or automatic provider attribution headers.
 
 ## [1.0.4] - 2026-10-05
 
