@@ -203,4 +203,46 @@ describe("AgentSession permission modes", () => {
 			"Use only the verified built-in read, grep, find, and ls tools",
 		);
 	});
+
+	it.each([
+		{ label: "implicit MCP retention", allowed: ["read", "write"], active: ["read", "write"] },
+		{
+			label: "explicit MCP patterns",
+			allowed: ["r*", "write", "mcp__demo__*"],
+			active: ["read", "write", "mcp__demo__inspect"],
+		},
+	])("preserves tool selection and read-only permissions with $label", async ({ allowed, active }) => {
+		harness = await createHarness({
+			allowedToolNames: allowed,
+			extensionFactories: [
+				(pi) => {
+					pi.registerTool({
+						name: "mcp__demo__inspect",
+						label: "Inspect",
+						description: "Inspect through an MCP tool",
+						parameters: Type.Object({}),
+						execute: async () => ({ content: [{ type: "text", text: "inspected" }], details: {} }),
+					});
+				},
+			],
+		});
+		expect(harness.session.getAllTools().map((tool) => tool.name)).toContain("mcp__demo__inspect");
+		harness.session.setActiveToolsByName(["read", "write", "mcp__demo__inspect"]);
+		expect(harness.session.getActiveToolNames()).toEqual(active);
+
+		harness.session.enablePermissions(undefined, "read-only");
+		harness.session.setActiveToolsByName(["read", "write", "mcp__demo__inspect"]);
+		expect(harness.session.getActiveToolNames()).toEqual(["read"]);
+		expect(harness.session.getCallableToolNames()).toEqual(["read"]);
+		harness.setResponses([
+			(context) => {
+				expect(getCurrentTools(context.messages).map((tool) => tool.name)).toEqual(["read"]);
+				return fauxAssistantMessage("inspected");
+			},
+		]);
+		await harness.session.prompt("Inspect without changes");
+
+		harness.session.setPermissionMode("skip");
+		expect(harness.session.getActiveToolNames()).toEqual(active);
+	});
 });
