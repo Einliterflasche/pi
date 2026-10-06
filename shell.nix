@@ -3,6 +3,8 @@
 pkgs.mkShell {
   packages = with pkgs; [
     nodejs_24
+    cargo
+    rustc
     just
     git
     python3
