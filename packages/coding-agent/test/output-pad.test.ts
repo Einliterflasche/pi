@@ -36,7 +36,11 @@ function createTool(definition: ToolDefinition | undefined, outputPad: number): 
 	return component;
 }
 
-const components: Array<{ name: string; create: (outputPad: number) => OutputPaddedComponent }> = [
+const components: Array<{
+	name: string;
+	indentedLines?: string[];
+	create: (outputPad: number) => OutputPaddedComponent;
+}> = [
 	{
 		name: "bash execution",
 		create: (outputPad) => {
@@ -50,6 +54,8 @@ const components: Array<{ name: string; create: (outputPad: number) => OutputPad
 	{ name: "tool execution without a definition", create: (outputPad) => createTool(undefined, outputPad) },
 	{
 		name: "self-rendered edit result",
+		// The fork reserves two columns below the call's status indicator.
+		indentedLines: ["  edit file.txt"],
 		create: (outputPad) => {
 			const component = new ToolExecutionComponent(
 				"edit",
@@ -84,10 +90,10 @@ describe("outputPad", () => {
 		ui.stop();
 	});
 
-	test.each(components)("$name renders at outputPad 0 and 1", ({ create }) => {
+	test.each(components)("$name renders at outputPad 0 and 1", ({ create, indentedLines }) => {
 		const component = create(0);
 		const lines = renderLines(component);
-		expect(lines.filter((line) => line.startsWith(" "))).toEqual([]);
+		expect(lines.filter((line) => line.startsWith(" "))).toEqual(indentedLines ?? []);
 		component.setOutputPad(1);
 		expect(renderLines(component)).toEqual(lines.map((line) => ` ${line}`));
 	});
