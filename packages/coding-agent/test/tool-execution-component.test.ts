@@ -283,16 +283,18 @@ describe("ToolExecutionComponent parity", () => {
 	});
 
 	// #10549
-	test("bash renderer shows a result's recorded duration, also for a result restored without a live start", () => {
+	test("bash renderer receives recorded duration but hides it for live and restored results", () => {
 		const render = (live: boolean): string => {
 			vi.useFakeTimers();
 			vi.setSystemTime(0);
+			const definition = createBashToolDefinition(process.cwd(), { exposeSessionEnvironment: false });
+			const renderResult = vi.spyOn(definition, "renderResult");
 			const component = new ToolExecutionComponent(
 				"bash",
 				"tool-bash-recorded",
 				{ command: "sleep 4" },
 				{},
-				createBashToolDefinition(process.cwd(), { exposeSessionEnvironment: false }),
+				definition,
 				createFakeTui(),
 				process.cwd(),
 			);
@@ -303,10 +305,12 @@ describe("ToolExecutionComponent parity", () => {
 				vi.advanceTimersByTime(3_600_000);
 			}
 			component.updateResult({ content: [], isError: false, durationMs: 4_200 }, false);
-			return stripAnsi(component.render(120).join("\n"));
+			const rendered = stripAnsi(component.render(120).join("\n"));
+			expect(renderResult.mock.calls.at(-1)?.[3].durationMs).toBe(4_200);
+			return rendered;
 		};
-		expect(render(true)).toContain("Took 4.2s");
-		expect(render(false)).toContain("Took 4.2s");
+		expect(render(true)).not.toMatch(/Took |Elapsed /);
+		expect(render(false)).not.toMatch(/Took |Elapsed /);
 	});
 
 	test("does not duplicate built-in headers when passed the active built-in definition", () => {
