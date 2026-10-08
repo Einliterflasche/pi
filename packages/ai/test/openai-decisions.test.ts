@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { classify } from "../src/api/openai-decisions.ts";
+import { calculateCost } from "../src/models.ts";
 import type { ClassifierContext, ClassifierModel, ImageContent } from "../src/types.ts";
 
 const model: ClassifierModel<"openai-decisions"> = {
@@ -126,16 +127,17 @@ describe("OpenAI Decisions", () => {
 			approved: { type: "bool", probability: 0.95 },
 		});
 		expect(result.usage).toMatchObject({ input: 164, output: 0, cacheRead: 0, totalTokens: 164 });
-		expect(result.usage?.cost.total).toBeCloseTo(0.0000164, 12);
+		expect(result.usage?.cost).toBeNull();
 	});
 
-	it("prices long-context requests at the long-context input rate", async () => {
+	it("keeps native billing unknown while retaining long-context catalog pricing", async () => {
 		const result = await classify(model, context, {
 			apiKey: "secret",
 			fetch: async () => Response.json({ answers: wireAnswers, usage: { input_tokens: 300000, output_tokens: 0 } }),
 		});
 
-		expect(result.usage?.cost.total).toBeCloseTo(0.06, 12);
+		expect(result.usage).toMatchObject({ input: 300000, output: 0, totalTokens: 300000, cost: null });
+		expect(calculateCost(model, result.usage!).total).toBeCloseTo(0.06, 12);
 	});
 
 	it("sends images after the state in one user message", async () => {
