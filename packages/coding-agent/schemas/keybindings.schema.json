@@ -219,6 +219,14 @@
       "$ref": "#/$defs/KeybindingValue",
       "description": "Save thinking level"
     },
+    "app.permissions.cycle": {
+      "$ref": "#/$defs/KeybindingValue",
+      "description": "Cycle permission mode"
+    },
+    "app.routing.cycle": {
+      "$ref": "#/$defs/KeybindingValue",
+      "description": "Cycle model routing profile"
+    },
     "app.model.cycleForward": {
       "$ref": "#/$defs/KeybindingValue",
       "description": "Cycle to next model"
@@ -262,6 +270,10 @@
     "app.clipboard.pasteImage": {
       "$ref": "#/$defs/KeybindingValue",
       "description": "Paste files on macOS, images, or text from clipboard"
+    },
+    "app.voice.dictate": {
+      "$ref": "#/$defs/KeybindingValue",
+      "description": "Hold to dictate when a voice input extension is available"
     },
     "app.session.new": {
       "$ref": "#/$defs/KeybindingValue",
