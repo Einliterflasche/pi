@@ -15,6 +15,7 @@ import type {
 	MistralConversationsCompat,
 	OpenAICompletionsCompat,
 	OpenAIResponsesCompat,
+	OpenRouterRouting,
 } from "./providers/compat-schema.ts";
 import type {
 	CacheRetention,

@@ -87,6 +87,44 @@ describe("generated configuration schemas", () => {
 		});
 	});
 
+	it("preserves fork settings in the published schema and runtime", () => {
+		const schema = JSON.parse(renderConfigSchemas().get("schemas/settings.schema.json") ?? "");
+		const manager = SettingsManager.inMemory();
+		expect(schema.properties.steeringMode.default).toBe("all");
+		expect(schema.properties.followUpMode.default).toBe("all");
+		expect(manager.getSteeringMode()).toBe(schema.properties.steeringMode.default);
+		expect(manager.getFollowUpMode()).toBe(schema.properties.followUpMode.default);
+		for (const name of ["enableInstallTelemetry", "enableAnalytics", "trackingId"]) {
+			expect(schema.properties).not.toHaveProperty(name);
+		}
+
+		const profiles = { custom: { only: ["provider"], sort: "latency", allow_fallbacks: false } };
+		const validator = Compile(schema);
+		expect(validator.Check({ openRouterRoutingProfiles: profiles })).toBe(true);
+		expect(validator.Check({ openRouterRoutingProfiles: { custom: { allow_fallbacks: "yes" } } })).toBe(false);
+		expect(SettingsManager.inMemory({ openRouterRoutingProfiles: profiles }).getOpenRouterRoutingProfiles()).toEqual(
+			profiles,
+		);
+	});
+
+	it("publishes configurable permission, routing, and voice shortcuts", () => {
+		const schema = JSON.parse(renderConfigSchemas().get("schemas/keybindings.schema.json") ?? "");
+		const bindings = {
+			"app.permissions.cycle": "ctrl+alt+p",
+			"app.routing.cycle": "ctrl+alt+r",
+			"app.voice.dictate": "ctrl+alt+v",
+		} as const;
+		for (const name of Object.keys(bindings)) {
+			expect(Object.hasOwn(schema.properties, name)).toBe(true);
+		}
+		expect(Compile(schema).Check(bindings)).toBe(true);
+		const directory = createTemporaryDirectory();
+		writeFileSync(join(directory, "keybindings.json"), JSON.stringify(bindings));
+		const manager = KeybindingsManager.create(directory);
+		expect(manager.getUserBindings()).toEqual(bindings);
+		expect(manager.getEffectiveConfig()).toMatchObject(bindings);
+	});
+
 	it.each([
 		{
 			name: "models.json",
