@@ -314,17 +314,18 @@ describe("read of images, with the Photon image processor", () => {
 	});
 
 	it("re-encodes a PNG too large for the byte limit as JPEG at its size, and shrinks it when that is not enough", async () => {
-		const result = await read("big.png", noisyPng(1100, 1100), { images: processor });
+		const png = noisyPng(1100, 1100);
+		const result = await read("big.png", png, { images: processor });
 		const jpeg = onlyImage(result);
 		expect(jpeg.mimeType).toBe("image/jpeg");
 		expect(messages(result)).toEqual(["Read image file [image/jpeg]. Converted from image/png to image/jpeg."]);
 		expect(jpeg.data.length).toBeLessThanOrEqual(DEFAULT_IMAGE_LIMITS.maxBytes);
 		expect(decodedImage(jpeg.data)).toMatchObject({ width: 1100, height: 1100 });
 		const tight = { ...DEFAULT_IMAGE_LIMITS, maxBytes: 200_000 };
-		const shrunk = await processor.prepare(noisyPng(2000, 2000), "image/png", tight);
+		const shrunk = await processor.prepare(png, "image/png", tight);
 		expect(shrunk!.data.length).toBeLessThanOrEqual(tight.maxBytes);
-		expect(shrunk!.resized?.from).toEqual({ width: 2000, height: 2000 });
-		expect(shrunk!.resized!.to.width).toBeLessThan(2000);
+		expect(shrunk!.resized?.from).toEqual({ width: 1100, height: 1100 });
+		expect(shrunk!.resized!.to.width).toBeLessThan(1100);
 	});
 
 	it("keeps at least one pixel on each side of an extreme aspect ratio", async () => {
